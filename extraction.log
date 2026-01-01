@@ -1,0 +1,85 @@
+Starting extraction process...
+Type of pdf: function
+PDF Directory: C:\Users\notos\kanei_quest\過去問題
+Output Directory: C:\Users\notos\kanei_quest\docs\past_exam_feature\extracted_text
+Found 10 PDF files.
+Processing kokushi30.pdf...
+Reading file: C:\Users\notos\kanei_quest\過去問題\kokushi30.pdf
+File size: 2614275 bytes
+First 20 bytes: 255044462d312e360d25e2e3cfd30d0a33323420
+Calling pdf-parse on 2614275 bytes...
+PDF parsed successfully.
+Extracted text saved to: C:\Users\notos\kanei_quest\docs\past_exam_feature\extracted_text\kokushi30.txt
+Text length: 128
+Processing kokushi31.pdf...
+Reading file: C:\Users\notos\kanei_quest\過去問題\kokushi31.pdf
+File size: 46498525 bytes
+First 20 bytes: 255044462d312e360d25e2e3cfd30d0a32303120
+Calling pdf-parse on 46498525 bytes...
+PDF parsed successfully.
+Extracted text saved to: C:\Users\notos\kanei_quest\docs\past_exam_feature\extracted_text\kokushi31.txt
+Text length: 144
+Processing kokushi32.pdf...
+Reading file: C:\Users\notos\kanei_quest\過去問題\kokushi32.pdf
+File size: 3914091 bytes
+First 20 bytes: 255044462d312e360d25e2e3cfd30d0a35393220
+Calling pdf-parse on 3914091 bytes...
+PDF parsed successfully.
+Extracted text saved to: C:\Users\notos\kanei_quest\docs\past_exam_feature\extracted_text\kokushi32.txt
+Text length: 156
+Processing kokushi33a.pdf...
+Reading file: C:\Users\notos\kanei_quest\過去問題\kokushi33a.pdf
+File size: 2520120 bytes
+First 20 bytes: 255044462d312e360d25e2e3cfd30d0a36313420
+Calling pdf-parse on 2520120 bytes...
+PDF parsed successfully.
+Extracted text saved to: C:\Users\notos\kanei_quest\docs\past_exam_feature\extracted_text\kokushi33a.txt
+Text length: 156
+Processing kokushi34.pdf...
+Reading file: C:\Users\notos\kanei_quest\過去問題\kokushi34.pdf
+File size: 6527562 bytes
+First 20 bytes: 255044462d312e360a25e2e3cfd30a3337203020
+Calling pdf-parse on 6527562 bytes...
+PDF parsed successfully.
+Extracted text saved to: C:\Users\notos\kanei_quest\docs\past_exam_feature\extracted_text\kokushi34.txt
+Text length: 168
+Processing kokushi35.pdf...
+Reading file: C:\Users\notos\kanei_quest\過去問題\kokushi35.pdf
+File size: 1193030 bytes
+First 20 bytes: 255044462d312e340a25e2e3cfd30a3337203020
+Calling pdf-parse on 1193030 bytes...
+PDF parsed successfully.
+Extracted text saved to: C:\Users\notos\kanei_quest\docs\past_exam_feature\extracted_text\kokushi35.txt
+Text length: 3763
+Processing kokushi36.pdf...
+Reading file: C:\Users\notos\kanei_quest\過去問題\kokushi36.pdf
+File size: 1393294 bytes
+First 20 bytes: 255044462d312e370a25e2e3cfd30a3934203020
+Calling pdf-parse on 1393294 bytes...
+PDF parsed successfully.
+Extracted text saved to: C:\Users\notos\kanei_quest\docs\past_exam_feature\extracted_text\kokushi36.txt
+Text length: 3417
+Processing kokushi37.pdf...
+Reading file: C:\Users\notos\kanei_quest\過去問題\kokushi37.pdf
+File size: 1259977 bytes
+First 20 bytes: 255044462d312e360d25e2e3cfd30d0a34393420
+Calling pdf-parse on 1259977 bytes...
+PDF parsed successfully.
+Extracted text saved to: C:\Users\notos\kanei_quest\docs\past_exam_feature\extracted_text\kokushi37.txt
+Text length: 2474
+Processing kokushi38.pdf...
+Reading file: C:\Users\notos\kanei_quest\過去問題\kokushi38.pdf
+File size: 1255901 bytes
+First 20 bytes: 255044462d312e370d25e2e3cfd30d0a31343137
+Calling pdf-parse on 1255901 bytes...
+PDF parsed successfully.
+Extracted text saved to: C:\Users\notos\kanei_quest\docs\past_exam_feature\extracted_text\kokushi38.txt
+Text length: 4261
+Processing kokushi39.pdf...
+Reading file: C:\Users\notos\kanei_quest\過去問題\kokushi39.pdf
+File size: 3137472 bytes
+First 20 bytes: 255044462d312e360d25e2e3cfd30d0a35333020
+Calling pdf-parse on 3137472 bytes...
+PDF parsed successfully.
+Extracted text saved to: C:\Users\notos\kanei_quest\docs\past_exam_feature\extracted_text\kokushi39.txt
+Text length: 55614
