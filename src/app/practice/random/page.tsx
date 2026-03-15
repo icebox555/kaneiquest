@@ -27,11 +27,20 @@ export default async function RandomQuizPage() {
         `)
         .limit(50);
 
-    // Shuffle client-side (server-side context)
-    const shuffledQuestions = questions?.sort(() => Math.random() - 0.5).slice(0, 10).map(q => ({
+    // Fisher-Yates shuffle for unbiased randomization
+    function shuffle<T>(arr: T[]): T[] {
+        const a = [...arr];
+        for (let i = a.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
+    }
+
+    const shuffledQuestions = shuffle(questions || []).slice(0, 10).map(q => ({
         ...q,
-        options: q.options.sort(() => Math.random() - 0.5)
-    })) || [];
+        options: shuffle(q.options),
+    }));
 
     // Note: passing undefined for categoryId results in null in DB insert, which is what we want for mixed/random
     return (

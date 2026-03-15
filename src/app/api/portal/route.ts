@@ -19,7 +19,8 @@ export async function POST(req: Request) {
             .single();
 
         if (!profile?.stripe_customer_id) {
-            return new NextResponse("No Stripe customer found", { status: 400 });
+            // Return generic message — do not expose internal subscription state
+            return new NextResponse("Subscription not found", { status: 404 });
         }
 
         const session = await stripe.billingPortal.sessions.create({
@@ -28,8 +29,9 @@ export async function POST(req: Request) {
         });
 
         return NextResponse.json({ url: session.url });
-    } catch (error: any) {
-        console.error("Stripe Portal Error:", error);
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error("Stripe Portal Error:", message);
         return new NextResponse("Internal Error", { status: 500 });
     }
 }

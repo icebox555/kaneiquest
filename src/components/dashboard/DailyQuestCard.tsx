@@ -22,21 +22,21 @@ export function DailyQuestCard({ weaknessName }: DailyQuestCardProps) {
                         <div className="p-2 rounded-lg bg-yellow-500/10 text-yellow-600">
                             <Sparkles className="w-5 h-5" />
                         </div>
-                        <h3 className="text-lg font-bold text-stone-800">AI Learning Coach</h3>
+                        <h3 className="text-lg font-bold text-stone-800">AI学習コーチ</h3>
                     </div>
 
                     <h4 className="text-xl font-bold text-stone-900 mb-2">
-                        Good Job! No specific weaknesses found.
+                        素晴らしい！苦手分野が見つかりませんでした。
                     </h4>
                     <p className="text-sm text-stone-500 mb-6">
-                        Keep up the good work! Try a random quiz to maintain your streak.
+                        この調子で頑張りましょう！ランダム演習でさらに実力を磨きましょう。
                     </p>
 
                     <Link
                         href="/practice"
                         className="inline-flex items-center justify-center w-full px-4 py-3 bg-stone-900 text-white font-bold rounded-xl hover:bg-stone-800 transition-colors"
                     >
-                        Start Practice
+                        演習を始める
                         <ArrowRight className="w-4 h-4 ml-2" />
                     </Link>
                 </div>
@@ -57,31 +57,31 @@ export function DailyQuestCard({ weaknessName }: DailyQuestCardProps) {
                         <Zap className="w-5 h-5" />
                     </div>
                     <div>
-                        <h3 className="text-lg font-bold text-stone-800">Daily Quest</h3>
-                        <p className="text-xs text-primary font-bold">Recommended for You</p>
+                        <h3 className="text-lg font-bold text-stone-800">デイリークエスト</h3>
+                        <p className="text-xs text-primary font-bold">あなたへのおすすめ</p>
                     </div>
                 </div>
 
                 <div className="mb-6">
-                    <p className="text-sm text-stone-500 mb-1">Focus Area</p>
+                    <p className="text-sm text-stone-500 mb-1">重点強化エリア</p>
                     <h4 className="text-2xl font-bold text-stone-900 leading-tight">
                         {weaknessName}
                     </h4>
                     <p className="text-xs text-stone-500 mt-2 flex items-center gap-1">
                         <Sparkles className="w-3 h-3 text-yellow-500" />
-                        <span>Analysis based on your recent performance</span>
+                        <span>直近の成績をもとにAIが分析しました</span>
                     </p>
                 </div>
 
                 <div className="flex items-center justify-between gap-4">
                     <div className="text-xs font-bold text-stone-400">
-                        Pending Reward: <span className="text-yellow-600">+50 XP</span>
+                        クリア報酬: <span className="text-yellow-600">+50 XP</span>
                     </div>
                     <Link
                         href="/practice/quest"
                         className="flex-1 inline-flex items-center justify-center px-4 py-3 bg-gradient-to-r from-primary to-orange-500 text-white font-bold rounded-xl shadow-lg shadow-orange-500/20 hover:shadow-orange-500/40 hover:scale-[1.02] transition-all"
                     >
-                        Start Quest
+                        クエストを始める
                         <ArrowRight className="w-4 h-4 ml-2" />
                     </Link>
                 </div>

@@ -13,11 +13,18 @@ export default function Error({
         console.error(error);
     }, [error]);
 
+    // Show detailed messages only in development to avoid leaking internal details
+    // (DB schema, API keys, stack traces) to end users in production.
+    const displayMessage =
+        process.env.NODE_ENV === "development"
+            ? (error.message || "Something went wrong!")
+            : "予期せぬエラーが発生しました。しばらく経ってから再度お試しください。";
+
     return (
         <div className="flex min-h-screen flex-col items-center justify-center p-4 text-center">
             <h2 className="text-2xl font-bold mb-4">エラーが発生しました</h2>
             <p className="mb-4 text-red-500 bg-red-50 p-4 rounded text-left w-full max-w-lg overflow-auto">
-                {error.message || "Something went wrong!"}
+                {displayMessage}
             </p>
             <div className="space-x-4">
                 <button

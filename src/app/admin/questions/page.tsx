@@ -29,6 +29,19 @@ export default async function QuestionsPage({ searchParams }: { searchParams: Pr
     // Await params
     const { year, q } = await searchParams;
 
+    // Validate query parameters to prevent DoS via overly long strings
+    // and injection via malformed year values.
+    const MAX_SEARCH_LEN = 200;
+    const safeQ = typeof q === "string" ? q.slice(0, MAX_SEARCH_LEN) : undefined;
+
+    let safeYear: number | undefined;
+    if (year) {
+        const parsed = parseInt(year, 10);
+        if (!isNaN(parsed) && parsed >= 1 && parsed <= 9999) {
+            safeYear = parsed;
+        }
+    }
+
     // Build query
     let query = supabase
         .from("questions")
@@ -40,12 +53,12 @@ export default async function QuestionsPage({ searchParams }: { searchParams: Pr
         `)
         .order("created_at", { ascending: false });
 
-    if (year) {
-        query = query.eq('exam_year', parseInt(year));
+    if (safeYear !== undefined) {
+        query = query.eq('exam_year', safeYear);
     }
 
-    if (q) {
-        query = query.ilike('content', `%${q}%`);
+    if (safeQ) {
+        query = query.ilike('content', `%${safeQ}%`);
     }
 
     const { data: questions } = await query;

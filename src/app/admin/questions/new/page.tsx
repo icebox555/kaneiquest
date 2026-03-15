@@ -39,7 +39,7 @@ export default async function NewQuestionPage() {
                 </p>
             </div>
 
-            <div className="glass p-6 rounded-xl">
+            <div className="admin-glass p-6 rounded-xl">
                 <QuestionForm categories={categories || []} />
             </div>
         </div>

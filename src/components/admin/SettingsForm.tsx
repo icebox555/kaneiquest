@@ -62,7 +62,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
     return (
         <div className="space-y-6">
             {/* Maintenance Mode */}
-            <Card className="bg-slate-900 border-red-500/20">
+            <Card className="admin-glass border-red-500/20">
                 <CardHeader>
                     <CardTitle className="text-white flex items-center gap-2">
                         メンテナンスモード
@@ -87,7 +87,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
             </Card>
 
             {/* Announcement */}
-            <Card className="bg-slate-900 border-blue-500/20">
+            <Card className="admin-glass border-blue-500/20">
                 <CardHeader>
                     <CardTitle className="text-white">システムお知らせ</CardTitle>
                     <CardDescription className="text-slate-400">

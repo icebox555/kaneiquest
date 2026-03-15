@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local dev files
+.claude/
+check_users_result.json
+docs/check_live_accounts/
+scripts/check_users.js

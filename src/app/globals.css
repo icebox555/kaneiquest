@@ -130,6 +130,25 @@
     transform: translateY(-0.25rem);
   }
 
+  /* Dark glass — used in admin pages which have a dark (slate-950) background */
+  .admin-glass {
+    background-color: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+  }
+
+  .admin-glass-hover {
+    transition: all 300ms;
+  }
+
+  .admin-glass-hover:hover {
+    background-color: rgba(15, 23, 42, 0.9);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+    transform: translateY(-0.25rem);
+  }
+
   .text-gradient-gold {
     background-clip: text;
     -webkit-background-clip: text;

@@ -18,8 +18,7 @@ export default async function ProfilePage() {
         .single();
 
     if (!profile) {
-        // Handle case where profile doesn't exist yet but auth user does
-        return <div>Profile not found</div>;
+        redirect("/dashboard");
     }
 
     const initialProfile = {

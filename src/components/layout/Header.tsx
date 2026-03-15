@@ -43,6 +43,21 @@ export function Header() {
           </nav>
         )}
 
+        {/* Logged-in nav */}
+        {user && (
+          <nav className="hidden md:flex gap-6 items-center text-sm font-medium text-slate-500">
+            <Link href="/dashboard" className="hover:text-primary transition-colors">
+              ダッシュボード
+            </Link>
+            <Link href="/schedule" className="hover:text-primary transition-colors">
+              カレンダー
+            </Link>
+            <Link href="/practice" className="hover:text-primary transition-colors">
+              過去問演習
+            </Link>
+          </nav>
+        )}
+
         {/* Actions */}
         <div className="flex items-center gap-4">
           {user ? (

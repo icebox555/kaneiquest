@@ -78,7 +78,7 @@ export default async function EditQuestionPage({ params }: PageProps) {
                 </p>
             </div>
 
-            <div className="glass p-6 rounded-xl">
+            <div className="admin-glass p-6 rounded-xl">
                 <QuestionForm
                     categories={categories || []}
                     initialData={formattedData}

@@ -1,10 +1,24 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe/server";
+import { STRIPE_CONFIG } from "@/lib/stripe/config";
+
+// Pre-compute the set of valid price IDs at module load time.
+// This prevents attackers from using arbitrary Stripe price IDs.
+const VALID_PRICE_IDS = new Set(
+    [STRIPE_CONFIG.PRICES.PRO_MONTHLY, STRIPE_CONFIG.PRICES.PRO_YEARLY].filter(Boolean)
+);
 
 export async function POST(req: Request) {
     try {
-        const { priceId } = await req.json();
+        const body = await req.json();
+        const priceId: unknown = body?.priceId;
+
+        // Whitelist validation — only our own defined price IDs are accepted
+        if (typeof priceId !== "string" || !VALID_PRICE_IDS.has(priceId)) {
+            return new NextResponse("Invalid price", { status: 400 });
+        }
+
         const supabase = await createClient();
         const { data: { user } } = await supabase.auth.getUser();
 
@@ -58,8 +72,9 @@ export async function POST(req: Request) {
         });
 
         return NextResponse.json({ sessionId: session.id, url: session.url });
-    } catch (error: any) {
-        console.error("Stripe Checkout Error:", error);
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error("Stripe Checkout Error:", message);
         return new NextResponse("Internal Error", { status: 500 });
     }
 }

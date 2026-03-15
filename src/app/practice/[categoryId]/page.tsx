@@ -38,11 +38,20 @@ export default async function QuizPage({ params }: PageProps) {
         .eq("category_id", categoryId)
         .limit(20);
 
-    // Shuffle questions client-side or here
-    const shuffledQuestions = questions?.sort(() => Math.random() - 0.5).slice(0, 10).map(q => ({
+    // Fisher-Yates shuffle for unbiased randomization
+    function shuffle<T>(arr: T[]): T[] {
+        const a = [...arr];
+        for (let i = a.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
+    }
+
+    const shuffledQuestions = shuffle(questions || []).slice(0, 10).map(q => ({
         ...q,
-        options: q.options.sort(() => Math.random() - 0.5) // Shuffle options too
-    })) || [];
+        options: shuffle(q.options)
+    }));
 
     return (
         <div className="min-h-screen bg-transparent pt-20">

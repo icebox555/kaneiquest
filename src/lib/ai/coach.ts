@@ -111,9 +111,13 @@ export async function generateDailyQuest(userId: string): Promise<DailyQuest | n
 
     if (!questionsCandidate || questionsCandidate.length === 0) return null;
 
-    // Shuffle and pick 10
-    const shuffled = questionsCandidate.sort(() => 0.5 - Math.random());
-    const selectedQuestions = shuffled.slice(0, 10);
+    // Fisher-Yates shuffle and pick 10
+    const pool = [...questionsCandidate];
+    for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    const selectedQuestions = pool.slice(0, 10);
 
     return {
         weakCategories: targetWeaknesses,

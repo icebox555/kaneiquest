@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { updateUserProfile } from "@/lib/actions/admin";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
@@ -24,22 +24,19 @@ export function UserEditDialog({ user }: UserEditDialogProps) {
     const [loading, setLoading] = useState(false);
     const [name, setName] = useState(user.name);
     const [plan, setPlan] = useState(user.plan);
-    const supabase = createClient();
 
     const handleSave = async () => {
         setLoading(true);
         try {
-            const { error } = await supabase
-                .from("profiles")
-                .update({ name, plan })
-                .eq("id", user.id);
-
-            if (error) throw error;
+            // Server Action: verifies admin role and validates plan server-side
+            const result = await updateUserProfile(user.id, name, plan);
+            if (result.error) throw new Error(result.error);
 
             setOpen(false);
             router.refresh();
-        } catch (error: any) {
-            alert("更新に失敗しました: " + error.message);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : "不明なエラー";
+            alert("更新に失敗しました: " + message);
         } finally {
             setLoading(false);
         }
@@ -83,7 +80,7 @@ export function UserEditDialog({ user }: UserEditDialogProps) {
                         >
                             <option value="free">Free</option>
                             <option value="pro">Pro</option>
-                            <option value="admin">Admin</option>
+                            {/* "admin" is intentionally excluded — role changes require DB-level operations */}
                         </select>
                     </div>
                 </div>

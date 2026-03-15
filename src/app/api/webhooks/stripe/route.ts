@@ -33,13 +33,19 @@ export async function POST(req: Request) {
     let event: Stripe.Event;
 
     try {
-        if (!webhookSecret) return new NextResponse("Webhook secret not set", { status: 400 });
-        if (!sig) return new NextResponse("No signature", { status: 400 });
+        if (!webhookSecret) {
+            console.error("STRIPE_WEBHOOK_SECRET is not configured");
+            return new NextResponse("Server configuration error", { status: 500 });
+        }
+        if (!sig) return new NextResponse("Missing signature", { status: 400 });
 
         event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
-    } catch (err: any) {
-        console.error(`❌ Webhook Error: ${err.message}`);
-        return new NextResponse(`Webhook Error: ${err.message}`, { status: 400 });
+    } catch (err: unknown) {
+        // Log internally but do NOT echo err.message in the response body
+        // to avoid leaking signature verification details to potential attackers.
+        const message = err instanceof Error ? err.message : String(err);
+        console.error(`Webhook signature verification failed: ${message}`);
+        return new NextResponse("Invalid webhook signature", { status: 401 });
     }
 
     if (relevantEvents.has(event.type)) {
@@ -80,31 +86,31 @@ export async function POST(req: Request) {
                 case "invoice.payment_succeeded": {
                     const subscription = event.data.object as Stripe.Subscription;
 
-                    // We need userId. If not in metadata, we might need to lookup by stripe_customer_id or subscription id.
-                    // But `checkout.session.completed` sets it.
-                    // For safety, let's query the table to get user_id if we have the record, OR trust the updated subscription object if we stored metadata there?
-                    // Stripe subscriptions don't automatically keep session metadata.
-                    // Better to lookup subscription in DB by ID to find user_id.
+                    const { data: existingSub, error: subLookupError } = await supabase
+                        .from("subscriptions")
+                        .select("user_id")
+                        .eq("id", subscription.id)
+                        .single();
 
-                    const { data: existingSub } = await supabase.from("subscriptions").select("user_id").eq("id", subscription.id).single();
-
-                    if (existingSub) {
-                        await supabase.from("subscriptions").upsert({
-                            id: subscription.id,
-                            user_id: existingSub.user_id,
-                            status: subscription.status,
-                            price_id: subscription.items.data[0].price.id,
-                            metadata: subscription.metadata,
-                            cancel_at_period_end: subscription.cancel_at_period_end,
-                            created_at: new Date((subscription as any).created * 1000).toISOString(),
-                            current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
-                            current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
-                        });
-
-                        // Update status
-                        const isPro = subscription.status === 'active' || subscription.status === 'trialing';
-                        await supabase.from("profiles").update({ is_pro: isPro }).eq("id", existingSub.user_id);
+                    if (subLookupError || !existingSub) {
+                        console.error(`Webhook [${event.type}]: subscription ${subscription.id} not found in DB. Skipping update.`);
+                        break;
                     }
+
+                    await supabase.from("subscriptions").upsert({
+                        id: subscription.id,
+                        user_id: existingSub.user_id,
+                        status: subscription.status,
+                        price_id: subscription.items.data[0].price.id,
+                        metadata: subscription.metadata,
+                        cancel_at_period_end: subscription.cancel_at_period_end,
+                        created_at: new Date((subscription as any).created * 1000).toISOString(),
+                        current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
+                        current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
+                    });
+
+                    const isPro = subscription.status === 'active' || subscription.status === 'trialing';
+                    await supabase.from("profiles").update({ is_pro: isPro }).eq("id", existingSub.user_id);
                     break;
                 }
                 case "customer.subscription.deleted": {

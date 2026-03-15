@@ -97,14 +97,14 @@ export async function getHeartStatus(userId?: string): Promise<HeartStatus> {
     };
 }
 
-export async function consumeHeart(userId?: string): Promise<{ success: boolean; message?: string }> {
+export async function consumeHeart(): Promise<{ success: boolean; message?: string }> {
     const supabase = await createClient();
 
-    if (!userId) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return { success: false, message: "User not found" };
-        userId = user.id;
-    }
+    // Always derive userId from the authenticated session — never accept it as a parameter
+    // to prevent callers from consuming hearts on behalf of other users.
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, message: "User not found" };
+    const userId = user.id;
 
     // Get current status (triggers update logic)
     const status = await getHeartStatus(userId);

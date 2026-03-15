@@ -47,12 +47,18 @@ export default function LoginPage() {
                     const params = new URLSearchParams(window.location.search);
                     const next = params.get("next");
 
-                    console.log("Login successful. Next param:", next);
-
-                    if (next && next.startsWith("/")) {
-                        // Use window.location.href to ensure a full refresh/state reset for critical flows like Checkout
-                        window.location.href = next;
-                        return;
+                    // Validate that `next` is an internal path to prevent open redirect attacks.
+                    // Parse with current origin as base and verify the resulting origin matches.
+                    if (next) {
+                        try {
+                            const url = new URL(next, window.location.origin);
+                            if (url.origin === window.location.origin) {
+                                window.location.href = url.pathname + url.search;
+                                return;
+                            }
+                        } catch {
+                            // Invalid URL — fall through to default redirect
+                        }
                     }
 
                     if (profile?.role === 'admin') {
@@ -63,9 +69,8 @@ export default function LoginPage() {
                     router.refresh();
                 }
             }
-        } catch (err) {
+        } catch {
             setError("予期せぬエラーが発生しました");
-            console.error(err);
         } finally {
             setLoading(false);
         }

@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { saveQuestion } from "@/lib/actions/admin";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
@@ -36,7 +36,6 @@ interface QuestionFormProps {
 
 export function QuestionForm({ categories, initialData }: QuestionFormProps) {
     const router = useRouter();
-    const supabase = createClient();
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState<QuestionData>({
         category_id: initialData?.category_id || categories[0]?.id || "",
@@ -79,111 +78,68 @@ export function QuestionForm({ categories, initialData }: QuestionFormProps) {
         setFormData({ ...formData, options: newOptions });
     };
 
+    const [validationError, setValidationError] = useState<string | null>(null);
+
+    const validate = (): boolean => {
+        if (!formData.content.trim()) {
+            setValidationError("問題文を入力してください。");
+            return false;
+        }
+        if (formData.options.length < 2) {
+            setValidationError("選択肢は2つ以上必要です。");
+            return false;
+        }
+        const emptyOption = formData.options.findIndex(o => !o.content.trim());
+        if (emptyOption !== -1) {
+            setValidationError(`選択肢 ${emptyOption + 1} が空欄です。`);
+            return false;
+        }
+        const hasCorrect = formData.options.some(o => o.is_correct);
+        if (!hasCorrect) {
+            setValidationError("正解の選択肢を選んでください。");
+            return false;
+        }
+        setValidationError(null);
+        return true;
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!validate()) return;
         setLoading(true);
 
         try {
-            let questionId = initialData?.id;
-
-            if (initialData?.id) {
-                // UPDATE
-                const { error: qError } = await supabase
-                    .from("questions")
-                    .update({
-                        category_id: formData.category_id,
-                        content: formData.content,
-                        explanation: formData.explanation,
-                        difficulty: formData.difficulty,
-                        exam_year: formData.exam_year || null,
-                        question_number: formData.question_number || null,
-                    })
-                    .eq("id", initialData.id);
-
-                if (qError) throw qError;
-
-                // Handle Options: Simplify by deleting all and re-inserting? 
-                // Careful with foreign keys if we had answer attempts linking to specific option IDs.
-                // Re-inserting will generate NEW IDs, breaking history.
-                // So execute upsert for existing ones, delete removed ones.
-
-                // 1. Upsert (Update existing + Insert new)
-                const optionsToUpsert = formData.options.map((opt, index) => ({
-                    id: opt.id, // If undefined, Supabase insert should handle it if we don't pass UUID? No, upsert needs ID to match.
-                    // If opt.id is missing, it's a new option. Upsert without ID usually inserts? 
-                    // Actually supabase .upsert() works on primary key.
-                    // If we pass {content, ...} without ID, it inserts.
-
-                    question_id: questionId,
-                    content: opt.content,
-                    is_correct: opt.is_correct,
-                    order: index + 1
-                }));
-
-                const { data: upsertedOptions, error: oError } = await supabase
-                    .from("options")
-                    .upsert(optionsToUpsert) // Upsert might need ID. If ID is present it updates.
-                    .select("id");
-
-                if (oError) throw oError;
-
-                // 2. Delete removed options
-                // Find IDs that are in initialData but NOT in formData
-                if (initialData.options) {
-                    const currentIds = formData.options.map(o => o.id).filter(Boolean);
-                    const idsToDelete = initialData.options
-                        .map(o => o.id)
-                        .filter(id => id && !currentIds.includes(id));
-
-                    if (idsToDelete.length > 0) {
-                        await supabase.from("options").delete().in("id", idsToDelete as string[]);
-                    }
-                }
-
-            } else {
-                // INSERT (Create New)
-                const { data: question, error: qError } = await supabase
-                    .from("questions")
-                    .insert({
-                        category_id: formData.category_id,
-                        content: formData.content,
-                        explanation: formData.explanation,
-                        difficulty: formData.difficulty,
-                        exam_year: formData.exam_year || null,
-                        question_number: formData.question_number || null,
-                        question_type: "multiple_choice"
-                    })
-                    .select()
-                    .single();
-
-                if (qError) throw qError;
-                questionId = question.id;
-
-                const optionsToInsert = formData.options.map((opt, index) => ({
-                    question_id: questionId,
-                    content: opt.content,
-                    is_correct: opt.is_correct,
-                    order: index + 1
-                }));
-
-                const { error: oError } = await supabase
-                    .from("options")
-                    .insert(optionsToInsert);
-
-                if (oError) throw oError;
+            // Collect option IDs that were removed (update only)
+            const optionIdsToDelete: string[] = [];
+            if (initialData?.id && initialData.options) {
+                const currentIds = formData.options.map((o) => o.id).filter(Boolean);
+                initialData.options
+                    .map((o) => o.id)
+                    .filter((id): id is string => !!id && !currentIds.includes(id))
+                    .forEach((id) => optionIdsToDelete.push(id));
             }
+
+            // Server Action: verifies admin role and validates all inputs server-side
+            const result = await saveQuestion({
+                id: initialData?.id,
+                category_id: formData.category_id,
+                content: formData.content,
+                explanation: formData.explanation,
+                difficulty: formData.difficulty,
+                exam_year: formData.exam_year,
+                question_number: formData.question_number,
+                options: formData.options,
+                optionIdsToDelete,
+            });
+
+            if (result.error) throw new Error(result.error);
 
             alert(initialData ? "保存しました" : "問題を作成しました");
             router.push("/admin/questions");
             router.refresh();
-
-        } catch (error) {
-            console.error("Error saving question:", error);
-            if (error instanceof Error) {
-                alert("エラーが発生しました: " + error.message);
-            } else {
-                alert("不明なエラーが発生しました");
-            }
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : "不明なエラーが発生しました";
+            alert("エラーが発生しました: " + message);
         } finally {
             setLoading(false);
         }
@@ -312,6 +268,12 @@ export function QuestionForm({ categories, initialData }: QuestionFormProps) {
                     placeholder="問題の解説を入力してください..."
                 />
             </div>
+
+            {validationError && (
+                <p className="text-sm text-red-400 bg-red-900/20 border border-red-700/30 rounded-md px-3 py-2">
+                    {validationError}
+                </p>
+            )}
 
             <div className="flex justify-end gap-4">
                 <Button type="button" variant="ghost" onClick={() => router.back()}>

@@ -24,41 +24,33 @@ export default function PricingPage() {
     }, []);
 
     const handleCheckout = async (priceId: string) => {
-        console.log("handleCheckout called with:", priceId);
         setLoading(priceId);
         try {
             if (!priceId) {
-                console.error("Price ID missing!");
                 alert("Configuration Error: Price ID is missing.");
                 setLoading(null);
                 return;
             }
 
-            console.log("Sending request to /api/checkout...");
             const res = await fetch("/api/checkout", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ priceId }),
             });
 
-            console.log("Response status:", res.status);
-
             if (!res.ok) {
                 const errorText = await res.text();
-                console.error("Checkout API error:", errorText);
                 if (res.status === 401) {
-                    window.location.href = "/login?next=/pricing"; // Redirect to login if not authenticated
+                    window.location.href = "/login?next=/pricing";
                     return;
                 }
                 throw new Error("Checkout failed: " + errorText);
             }
 
             const data = await res.json();
-            console.log("Redirecting to:", data.url);
             window.location.href = data.url;
         } catch (error) {
-            console.error("Catch block error:", error);
-            alert("決済の開始に失敗しました。詳細はコンソールをご確認ください。");
+            alert("決済の開始に失敗しました。しばらく経ってから再度お試しください。");
             setLoading(null);
         }
     };
@@ -70,8 +62,7 @@ export default function PricingPage() {
             if (!res.ok) throw new Error("Portal failed");
             const data = await res.json();
             window.location.href = data.url;
-        } catch (error) {
-            console.error(error);
+        } catch {
             alert("カスタマーポータルの起動に失敗しました。");
             setLoading(null);
         }

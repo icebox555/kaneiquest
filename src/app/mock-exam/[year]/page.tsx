@@ -18,7 +18,12 @@ export default async function MockExamYearPage({ params }: PageProps) {
     }
 
     const { year } = await params;
-    const yearInt = parseInt(year);
+    const yearInt = parseInt(year, 10);
+
+    // Reject non-numeric or out-of-range year values early
+    if (isNaN(yearInt) || yearInt < 1 || yearInt > 9999) {
+        redirect("/mock-exam");
+    }
 
     // Fetch questions
     const { data: questions } = await supabase

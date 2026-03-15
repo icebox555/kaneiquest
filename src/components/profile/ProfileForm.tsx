@@ -56,12 +56,27 @@ export function ProfileForm({ initialProfile }: ProfileFormProps) {
         setCroppedAreaPixels(croppedAreaPixels);
     }, []);
 
+    const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+    const MAX_FILE_SIZE_MB = 10;
+
     const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
 
         // Reset file input value to allow re-selecting same file
         event.target.value = '';
+
+        // Validate MIME type (the `accept` attribute on the input can be bypassed)
+        if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+            alert("JPEG、PNG、WebP 形式の画像のみアップロードできます。");
+            return;
+        }
+
+        // Validate file size before processing
+        if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+            alert(`ファイルサイズは ${MAX_FILE_SIZE_MB}MB 以下にしてください。`);
+            return;
+        }
 
         const reader = new FileReader();
         reader.addEventListener("load", () => {
@@ -161,8 +176,8 @@ export function ProfileForm({ initialProfile }: ProfileFormProps) {
             alert("パスワードが一致しません。");
             return;
         }
-        if (newPassword.length < 6) {
-            alert("パスワードは6文字以上で入力してください。");
+        if (newPassword.length < 8) {
+            alert("パスワードは8文字以上で入力してください。");
             return;
         }
 
@@ -228,6 +243,7 @@ export function ProfileForm({ initialProfile }: ProfileFormProps) {
                                         value={name}
                                         onChange={(e) => setName(e.target.value)}
                                         placeholder="ユーザー名を入力"
+                                        maxLength={50}
                                         className="bg-white border-stone-200 text-stone-800 focus:ring-primary focus:border-primary placeholder:text-stone-400"
                                     />
                                 </div>
@@ -283,7 +299,7 @@ export function ProfileForm({ initialProfile }: ProfileFormProps) {
                 <CardHeader>
                     <CardTitle className="text-stone-800">パスワード変更</CardTitle>
                     <CardDescription className="text-stone-500">
-                        新しいパスワードを設定します。6文字以上で入力してください。
+                        新しいパスワードを設定します。8文字以上で入力してください。
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
