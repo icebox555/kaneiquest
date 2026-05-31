@@ -117,7 +117,8 @@ export async function POST(req: Request) {
                 }
                 case "invoice.payment_succeeded": {
                     // event.data.object is Invoice, not Subscription
-                    const invoice = event.data.object as Stripe.Invoice;
+                    // Cast to any: Stripe SDK Invoice type omits subscription field in some versions
+                    const invoice = event.data.object as any;
                     const subscriptionId = typeof invoice.subscription === 'string'
                         ? invoice.subscription
                         : invoice.subscription?.id;
