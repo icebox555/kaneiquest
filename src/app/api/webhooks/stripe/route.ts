@@ -60,7 +60,8 @@ export async function POST(req: Request) {
                         const userId = session.metadata?.userId;
 
                         if (userId && subscriptionId) {
-                            const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+                            // Cast to any: Stripe SDK wraps response in Response<T> but fields exist at runtime
+                            const subscription = await stripe.subscriptions.retrieve(subscriptionId) as any;
 
                             await supabase.from("subscriptions").upsert({
                                 id: subscription.id,
@@ -82,7 +83,7 @@ export async function POST(req: Request) {
                     break;
                 }
                 case "customer.subscription.updated": {
-                    const subscription = event.data.object as Stripe.Subscription;
+                    const subscription = event.data.object as any;
 
                     const { data: existingSub, error: subLookupError } = await supabase
                         .from("subscriptions")
@@ -135,7 +136,7 @@ export async function POST(req: Request) {
                     }
 
                     // Fetch current subscription state from Stripe to get accurate status
-                    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+                    const subscription = await stripe.subscriptions.retrieve(subscriptionId) as any;
                     const isPro = subscription.status === 'active' || subscription.status === 'trialing';
 
                     await supabase.from("subscriptions").upsert({
@@ -156,7 +157,7 @@ export async function POST(req: Request) {
                     break;
                 }
                 case "customer.subscription.deleted": {
-                    const subscription = event.data.object as Stripe.Subscription;
+                    const subscription = event.data.object as any;
                     const { data: existingSub } = await supabase
                         .from("subscriptions")
                         .select("user_id")
