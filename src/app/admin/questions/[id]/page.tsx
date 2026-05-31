@@ -61,6 +61,7 @@ export default async function EditQuestionPage({ params }: PageProps) {
         difficulty: question.difficulty || 1,
         exam_year: question.exam_year || undefined,
         question_number: question.question_number || undefined,
+        status: (question.status ?? 'published') as 'draft' | 'published',
         options: question.options?.sort((a: any, b: any) => (a.order || 0) - (b.order || 0)) || []
     };
 
