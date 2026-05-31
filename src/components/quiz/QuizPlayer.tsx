@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { ArrowLeft, ArrowRight, CheckCircle, XCircle } from "lucide-react";
+import { ArrowRight, CheckCircle, XCircle, Zap, Home, X, LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { earnHeart } from "@/lib/actions/heart";
 import { BookmarkButton } from "./BookmarkButton";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -51,6 +52,7 @@ export function QuizPlayer({
     const [quizCompleted, setQuizCompleted] = useState(false);
     const [attemptCreated, setAttemptCreated] = useState(false);
     const [bookmarkedQuestionIds, setBookmarkedQuestionIds] = useState<Set<string>>(new Set());
+    const [showQuitDialog, setShowQuitDialog] = useState(false);
 
     // Fetch bookmarks for these questions
     useEffect(() => {
@@ -97,11 +99,32 @@ export function QuizPlayer({
     // Auto-finish on timeout
     useEffect(() => {
         if (secondsRemaining === 0 && !quizCompleted) {
-            // Timeout! Finish Quiz
-            // Ideally trigger handleNext recursively or just set completed
             setQuizCompleted(true);
         }
     }, [secondsRemaining, quizCompleted]);
+
+    // Warn on browser refresh / tab close during active quiz
+    useEffect(() => {
+        if (quizCompleted) return;
+        const handler = (e: BeforeUnloadEvent) => {
+            e.preventDefault();
+            e.returnValue = '';
+        };
+        window.addEventListener('beforeunload', handler);
+        return () => window.removeEventListener('beforeunload', handler);
+    }, [quizCompleted]);
+
+    // Intercept browser back button during active quiz
+    useEffect(() => {
+        if (quizCompleted) return;
+        window.history.pushState(null, '', window.location.href);
+        const handler = () => {
+            window.history.pushState(null, '', window.location.href);
+            setShowQuitDialog(true);
+        };
+        window.addEventListener('popstate', handler);
+        return () => window.removeEventListener('popstate', handler);
+    }, [quizCompleted]);
 
     useEffect(() => {
         const startAttempt = async () => {
@@ -137,7 +160,7 @@ export function QuizPlayer({
     const currentQuestion = questions[currentIndex];
 
     // Helper to update user XP and Level
-    const updateUserStats = async (finalScore: number) => {
+    const updateUserStats = async (finalScore: number, bonusXp: number = 0) => {
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
@@ -153,7 +176,7 @@ export function QuizPlayer({
             let currentLevel = profile.level || 1;
             let currentXp = profile.xp || 0;
 
-            const earnedXp = (finalScore * 10) + 20;
+            const earnedXp = (finalScore * 10) + 20 + bonusXp;
 
             let newXp = currentXp + earnedXp;
             let newLevel = currentLevel;
@@ -185,6 +208,9 @@ export function QuizPlayer({
 
         if (isCorrect) {
             setScore(s => s + 1);
+            if ('vibrate' in navigator) navigator.vibrate(50);
+        } else {
+            if ('vibrate' in navigator) navigator.vibrate([100, 50, 100]);
         }
 
         // Save detailed answer to question_attempts
@@ -218,8 +244,12 @@ export function QuizPlayer({
                 .eq("id", attemptId);
         }
 
-        // Update user stats
-        await updateUserStats(finalScore);
+        // Update user stats (quest mode awards bonus XP)
+        const questBonus = mode === 'quest' ? 50 : 0;
+        await updateUserStats(finalScore, questBonus);
+
+        // Earn heart for completing a quiz (once per day)
+        earnHeart('quiz_complete').catch(() => {});
 
         setQuizCompleted(true);
         setLoading(false);
@@ -253,21 +283,35 @@ export function QuizPlayer({
     }
 
     if (quizCompleted) {
+        const pct = Math.round((score / questions.length) * 100);
+        const questBonus = mode === 'quest' ? 50 : 0;
+        const earnedXp = (score * 10) + 20 + questBonus;
         return (
             <div className="max-w-xl mx-auto py-12 px-4 text-center">
                 <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="glass p-8 rounded-2xl"
+                    className="glass p-8 rounded-2xl space-y-6"
                 >
-                    <h2 className="text-3xl font-bold text-stone-800 mb-4">お疲れ様でした！</h2>
-                    <div className="text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-amber-300 mb-6">
-                        {score} / {questions.length}
+                    <h2 className="text-3xl font-bold text-stone-800">お疲れ様でした！</h2>
+                    <div className="text-7xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-primary to-amber-300">
+                        {score}<span className="text-4xl text-stone-400">/{questions.length}</span>
                     </div>
-                    <p className="text-stone-500 mb-8">
-                        正答率: {Math.round((score / questions.length) * 100)}%
-                    </p>
-                    <div className="flex justify-center gap-4">
+                    <div className="space-y-2">
+                        <p className="text-stone-500 text-lg">正答率: <span className={`font-bold ${pct >= 60 ? "text-green-500" : "text-rose-500"}`}>{pct}%</span></p>
+                        <div className="h-3 bg-stone-100 rounded-full overflow-hidden max-w-xs mx-auto">
+                            <div className={`h-full rounded-full ${pct >= 60 ? "bg-green-400" : "bg-rose-400"}`} style={{ width: `${pct}%` }} />
+                        </div>
+                    </div>
+                    <div className="inline-flex items-center gap-2 bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-full px-5 py-2 text-sm font-semibold">
+                        <Zap className="w-4 h-4" />
+                        +{earnedXp} XP 獲得！
+                    </div>
+                    <div className="flex flex-col sm:flex-row justify-center gap-3 pt-2">
+                        <Button onClick={() => router.push("/dashboard")} variant="outline" className="flex items-center gap-2">
+                            <Home className="w-4 h-4" />
+                            ダッシュボードへ
+                        </Button>
                         <Button onClick={() => router.push("/practice")} variant="outline">
                             演習一覧へ
                         </Button>
@@ -284,6 +328,55 @@ export function QuizPlayer({
 
     return (
         <div className="max-w-3xl mx-auto py-12 px-4">
+            {/* Quit Confirmation Dialog */}
+            <AnimatePresence>
+                {showQuitDialog && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4"
+                        onClick={() => setShowQuitDialog(false)}
+                    >
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                            transition={{ duration: 0.2 }}
+                            className="glass bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <div className="flex items-center gap-3 mb-3">
+                                <div className="p-2 rounded-full bg-red-50 text-red-500">
+                                    <LogOut className="w-5 h-5" />
+                                </div>
+                                <h3 className="text-lg font-bold text-stone-800">演習を終了しますか？</h3>
+                            </div>
+                            <p className="text-sm text-stone-500 mb-6">
+                                途中で終了すると、ここまでの回答は保存されません。<br />
+                                本当に終了しますか？
+                            </p>
+                            <div className="flex gap-3">
+                                <Button
+                                    variant="outline"
+                                    className="flex-1"
+                                    onClick={() => setShowQuitDialog(false)}
+                                >
+                                    続ける
+                                </Button>
+                                <Button
+                                    variant="destructive"
+                                    className="flex-1"
+                                    onClick={() => router.push('/practice')}
+                                >
+                                    終了する
+                                </Button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* Timer Display */}
             {secondsRemaining !== null && (
                 <div className={cn(
@@ -294,11 +387,18 @@ export function QuizPlayer({
                 </div>
             )}
             {/* Progress Bar */}
-            <div className="mb-8">
+            <div className="mb-6">
                 <div className="flex justify-between text-sm text-stone-500 mb-2">
-                    <span className="flex items-center gap-2">
-                        Question {currentIndex + 1}
-                        {currentQuestion.question_number && <span className="text-stone-500">(No.{currentQuestion.question_number})</span>}
+                    <span className="flex items-center gap-2 font-medium">
+                        <button
+                            onClick={() => setShowQuitDialog(true)}
+                            className="p-1 rounded-full text-stone-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                            title="演習を終了する"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                        <span className="text-primary font-bold">第{currentIndex + 1}問</span>
+                        {currentQuestion.question_number && <span className="text-stone-400 text-xs">(No.{currentQuestion.question_number})</span>}
                         <BookmarkButton
                             questionId={currentQuestion.id}
                             initialBookmarked={bookmarkedQuestionIds.has(currentQuestion.id)}
@@ -310,11 +410,11 @@ export function QuizPlayer({
                             }}
                         />
                     </span>
-                    <span>{questions.length} total</span>
+                    <span className="font-semibold">{currentIndex + 1} / {questions.length}問</span>
                 </div>
-                <div className="h-2 bg-stone-200 rounded-full overflow-hidden">
+                <div className="h-2.5 bg-stone-200 rounded-full overflow-hidden">
                     <motion.div
-                        className="h-full bg-primary"
+                        className="h-full bg-gradient-to-r from-primary to-rose-400"
                         initial={{ width: 0 }}
                         animate={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
                         transition={{ duration: 0.5, ease: "easeInOut" }}
@@ -340,11 +440,11 @@ export function QuizPlayer({
                             {currentQuestion.options.map((option) => (
                                 <motion.div
                                     key={option.id}
-                                    whileHover={!isAnswered ? { scale: 1.02 } : {}}
+                                    whileHover={!isAnswered ? { scale: 1.01 } : {}}
                                     whileTap={!isAnswered ? { scale: 0.98 } : {}}
                                     onClick={() => !isAnswered && setSelectedOptionId(option.id)}
                                     className={cn(
-                                        "p-4 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-3",
+                                        "min-h-[56px] p-4 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-3",
                                         isAnswered && option.is_correct
                                             ? "bg-green-500/10 border-green-500 text-green-400"
                                             : isAnswered && selectedOptionId === option.id && !option.is_correct

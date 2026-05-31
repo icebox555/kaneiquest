@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { Timer, Flag, Grid, ChevronLeft, ChevronRight, CheckCircle, Save, AlertCircle } from "lucide-react";
+import { Timer, Flag, Grid, ChevronLeft, ChevronRight, CheckCircle, Save, AlertCircle, LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -52,6 +52,7 @@ export function MockExamPlayer({
     const [isFinished, setIsFinished] = useState(false);
     const [score, setScore] = useState(0);
     const [lastSavedTime, setLastSavedTime] = useState(initialTimeRemaining);
+    const [showFinishDialog, setShowFinishDialog] = useState(false);
 
     const timerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -101,6 +102,29 @@ export function MockExamPlayer({
             if (timerRef.current) clearInterval(timerRef.current);
         };
     }, []);
+
+    // Warn on browser refresh / tab close during active exam
+    useEffect(() => {
+        if (isFinished) return;
+        const handler = (e: BeforeUnloadEvent) => {
+            e.preventDefault();
+            e.returnValue = '';
+        };
+        window.addEventListener('beforeunload', handler);
+        return () => window.removeEventListener('beforeunload', handler);
+    }, [isFinished]);
+
+    // Intercept browser back button during active exam
+    useEffect(() => {
+        if (isFinished) return;
+        window.history.pushState(null, '', window.location.href);
+        const handler = () => {
+            window.history.pushState(null, '', window.location.href);
+            setShowFinishDialog(true);
+        };
+        window.addEventListener('popstate', handler);
+        return () => window.removeEventListener('popstate', handler);
+    }, [isFinished]);
 
     // Auto-save progress every 30 seconds
     useEffect(() => {
@@ -195,8 +219,7 @@ export function MockExamPlayer({
     const handleFinish = async () => {
         if (isFinished || isSubmitting) return;
 
-        if (!confirm("試験を終了して採点しますか？この操作は取り消せません。")) return;
-
+        setShowFinishDialog(false);
         setIsSubmitting(true);
         if (timerRef.current) clearInterval(timerRef.current);
 
@@ -259,7 +282,7 @@ export function MockExamPlayer({
 
         } catch (err) {
             console.error("Error finishing exam:", err);
-            alert("エラーが発生しました。結果が正しく保存されなかった可能性があります。");
+            // Non-blocking: still show results even if save failed
         }
 
         setIsSubmitting(false);
@@ -314,8 +337,8 @@ export function MockExamPlayer({
                         <Grid className="w-5 h-5 mr-2" /> 問題一覧
                     </Button>
                     <Button
-                        onClick={handleFinish}
-                        variant="default" // Use default for now, standard finish button
+                        onClick={() => setShowFinishDialog(true)}
+                        variant="default"
                         className="bg-stone-800 hover:bg-stone-700 text-white"
                         disabled={isSubmitting}
                     >
@@ -460,6 +483,55 @@ export function MockExamPlayer({
                     <ChevronRight className="w-6 h-6" />
                 </button>
             </div>
+
+            {/* Finish Confirmation Dialog */}
+            <AnimatePresence>
+                {showFinishDialog && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4"
+                        onClick={() => setShowFinishDialog(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            transition={{ type: "spring", damping: 20 }}
+                            className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <div className="flex items-center gap-3 mb-3">
+                                <div className="p-2 rounded-full bg-red-50 text-red-500">
+                                    <LogOut className="w-5 h-5" />
+                                </div>
+                                <h3 className="text-lg font-bold text-stone-800">試験を終了して採点しますか？</h3>
+                            </div>
+                            <p className="text-sm text-stone-500 mb-6">
+                                未回答: {questions.length - Object.keys(answers).length}問 / 全{questions.length}問。<br />
+                                この操作は取り消せません。
+                            </p>
+                            <div className="flex gap-3">
+                                <Button
+                                    variant="outline"
+                                    className="flex-1"
+                                    onClick={() => setShowFinishDialog(false)}
+                                >
+                                    続ける
+                                </Button>
+                                <Button
+                                    className="flex-1 bg-red-500 hover:bg-red-600 text-white"
+                                    loading={isSubmitting}
+                                    onClick={handleFinish}
+                                >
+                                    終了して採点
+                                </Button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

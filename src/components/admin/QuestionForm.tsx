@@ -5,7 +5,7 @@ import { saveQuestion } from "@/lib/actions/admin";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
-import { Plus, Trash, Save } from "lucide-react";
+import { Plus, Trash, Save, AlertCircle } from "lucide-react";
 
 type Category = {
     id: string;
@@ -26,6 +26,7 @@ type QuestionData = {
     difficulty: number;
     exam_year?: number;
     question_number?: number;
+    status: 'draft' | 'published';
     options: Option[];
 };
 
@@ -37,6 +38,7 @@ interface QuestionFormProps {
 export function QuestionForm({ categories, initialData }: QuestionFormProps) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [formData, setFormData] = useState<QuestionData>({
         category_id: initialData?.category_id || categories[0]?.id || "",
         content: initialData?.content || "",
@@ -44,6 +46,8 @@ export function QuestionForm({ categories, initialData }: QuestionFormProps) {
         difficulty: initialData?.difficulty || 1,
         exam_year: initialData?.exam_year,
         question_number: initialData?.question_number,
+        // New questions default to draft; existing questions keep their current status
+        status: (initialData as any)?.status ?? (initialData?.id ? 'published' : 'draft'),
         options: initialData?.options || [
             { content: "", is_correct: true },
             { content: "", is_correct: false },
@@ -128,18 +132,18 @@ export function QuestionForm({ categories, initialData }: QuestionFormProps) {
                 difficulty: formData.difficulty,
                 exam_year: formData.exam_year,
                 question_number: formData.question_number,
+                status: formData.status,
                 options: formData.options,
                 optionIdsToDelete,
             });
 
             if (result.error) throw new Error(result.error);
 
-            alert(initialData ? "保存しました" : "問題を作成しました");
             router.push("/admin/questions");
             router.refresh();
         } catch (error: unknown) {
             const message = error instanceof Error ? error.message : "不明なエラーが発生しました";
-            alert("エラーが発生しました: " + message);
+            setErrorMsg("エラーが発生しました: " + message);
         } finally {
             setLoading(false);
         }
@@ -147,6 +151,12 @@ export function QuestionForm({ categories, initialData }: QuestionFormProps) {
 
     return (
         <form onSubmit={handleSubmit} className="space-y-8">
+            {errorMsg && (
+                <div className="flex items-center gap-2 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    {errorMsg}
+                </div>
+            )}
             <div className="grid gap-6 md:grid-cols-2">
                 <div className="space-y-2">
                     <Label htmlFor="category">分野</Label>
@@ -267,6 +277,27 @@ export function QuestionForm({ categories, initialData }: QuestionFormProps) {
                     onChange={(e) => setFormData({ ...formData, explanation: e.target.value })}
                     placeholder="問題の解説を入力してください..."
                 />
+            </div>
+
+            {validationError && (
+                <p className="text-sm text-red-400 bg-red-900/20 border border-red-700/30 rounded-md px-3 py-2">
+                    {validationError}
+                </p>
+            )}
+
+            {/* Status toggle */}
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-800/50 border border-slate-700">
+                <span className="text-sm text-slate-400">公開ステータス:</span>
+                <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, status: prev.status === 'published' ? 'draft' : 'published' }))}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${formData.status === 'published' ? 'bg-green-500' : 'bg-slate-600'}`}
+                >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.status === 'published' ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+                <span className={`text-sm font-bold ${formData.status === 'published' ? 'text-green-400' : 'text-yellow-400'}`}>
+                    {formData.status === 'published' ? '公開 — ユーザーに表示されます' : '下書き — 監修完了後に公開してください'}
+                </span>
             </div>
 
             {validationError && (

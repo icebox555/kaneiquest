@@ -69,21 +69,7 @@ export default async function AdminPage({
     if (plan !== "all") userListQuery = userListQuery.eq("plan", plan);
     userListQuery = userListQuery.order(sort, { ascending: order === "asc" });
 
-    const [
-        { data: profiles },
-        { count: totalUsers },
-        { count: totalQuestions },
-        { count: proUsers },
-        { count: completedExams },
-        { count: totalAnswers },
-        { count: correctAnswers },
-        { count: answersThisWeek },
-        { data: recentAttemptUsers },
-        { data: weekAttemptUsers },
-        { data: avgScoreRows },
-        { data: allCategories },
-        { data: allQuestions },
-    ] = await Promise.all([
+    const results = await Promise.allSettled([
         userListQuery.limit(20),
         supabase.from("profiles").select("*", { count: "exact", head: true }),
         supabase.from("questions").select("*", { count: "exact", head: true }),
@@ -98,6 +84,20 @@ export default async function AdminPage({
         supabase.from("categories").select("id, name").order("order"),
         supabase.from("questions").select("category_id"),
     ]);
+
+    const profiles    = results[0].status === 'fulfilled' ? results[0].value.data : null;
+    const totalUsers  = results[1].status === 'fulfilled' ? results[1].value.count : null;
+    const totalQuestions = results[2].status === 'fulfilled' ? results[2].value.count : null;
+    const proUsers    = results[3].status === 'fulfilled' ? results[3].value.count : null;
+    const completedExams = results[4].status === 'fulfilled' ? results[4].value.count : null;
+    const totalAnswers   = results[5].status === 'fulfilled' ? results[5].value.count : null;
+    const correctAnswers = results[6].status === 'fulfilled' ? results[6].value.count : null;
+    const answersThisWeek = results[7].status === 'fulfilled' ? results[7].value.count : null;
+    const recentAttemptUsers = results[8].status === 'fulfilled' ? results[8].value.data : [];
+    const weekAttemptUsers   = results[9].status === 'fulfilled' ? results[9].value.data : [];
+    const avgScoreRows  = results[10].status === 'fulfilled' ? results[10].value.data : [];
+    const allCategories = results[11].status === 'fulfilled' ? results[11].value.data : [];
+    const allQuestions  = results[12].status === 'fulfilled' ? results[12].value.data : [];
 
     // ---- Derived metrics ----
     const activeUsers30d = new Set(recentAttemptUsers?.map(r => r.user_id) ?? []).size;

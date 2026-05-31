@@ -1,10 +1,30 @@
-"use client";
-
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { PracticeEntryCard } from "@/components/practice/PracticeEntryCard";
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 
-export default function ReviewHubPage() {
+export default async function ReviewHubPage() {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) redirect("/login");
+
+    // Count spaced repetition questions due today
+    const now = new Date();
+    let spacedCount = 0;
+    for (const days of [1, 3, 7]) {
+        const from = new Date(now.getTime() - (days + 1) * 24 * 60 * 60 * 1000);
+        const to = new Date(now.getTime() - (days - 1) * 24 * 60 * 60 * 1000 + 20 * 60 * 60 * 1000);
+        const { count } = await supabase
+            .from("question_attempts")
+            .select("*", { count: "exact", head: true })
+            .eq("user_id", user.id)
+            .eq("is_correct", false)
+            .gte("created_at", from.toISOString())
+            .lte("created_at", to.toISOString());
+        spacedCount += count ?? 0;
+    }
+
     return (
         <div className="min-h-screen bg-transparent pt-20 pb-12">
             <div className="container mx-auto px-4 md:px-6">
@@ -26,7 +46,7 @@ export default function ReviewHubPage() {
                     </p>
                 </div>
 
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2 max-w-4xl mx-auto">
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto">
                     {/* Wrong Answers Review */}
                     <div className="h-64">
                         <PracticeEntryCard
@@ -51,6 +71,20 @@ export default function ReviewHubPage() {
                             bgClass="bg-yellow-500/10 text-yellow-500"
                             accentColorClass="text-stone-800 group-hover:text-yellow-500"
                             buttonText="START REVIEW"
+                            requiresHeart={false}
+                        />
+                    </div>
+
+                    {/* Spaced Repetition */}
+                    <div className="h-64">
+                        <PracticeEntryCard
+                            href="/practice/review/spaced"
+                            title={`間隔反復${spacedCount > 0 ? ` (${spacedCount}問)` : ''}`}
+                            description="1日後・3日後・7日後に自動で再出題。科学的な間隔で記憶を定着させます。"
+                            iconName="RefreshCw"
+                            bgClass="bg-purple-500/10 text-purple-500"
+                            accentColorClass="text-stone-800 group-hover:text-purple-500"
+                            buttonText={spacedCount > 0 ? "TODAY'S REVIEW" : "NO DUE TODAY"}
                             requiresHeart={false}
                         />
                     </div>

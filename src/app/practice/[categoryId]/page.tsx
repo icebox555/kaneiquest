@@ -36,6 +36,7 @@ export default async function QuizPage({ params }: PageProps) {
             )
         `)
         .eq("category_id", categoryId)
+        .eq("status", "published")
         .limit(20);
 
     // Fisher-Yates shuffle for unbiased randomization

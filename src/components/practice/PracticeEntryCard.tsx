@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { consumeHeart } from "@/lib/actions/heart";
-import { ArrowRight, Lock, Loader2, Heart, BookOpen, Activity, Beaker, Apple, Users, LucideIcon, XCircle, Bookmark } from "lucide-react";
+import { ArrowRight, Lock, Loader2, Heart, BookOpen, Activity, Beaker, Apple, Users, LucideIcon, XCircle, Bookmark, RefreshCw, AlertCircle } from "lucide-react";
 
 const ICON_MAP: Record<string, LucideIcon> = {
     BookOpen,
@@ -12,7 +12,8 @@ const ICON_MAP: Record<string, LucideIcon> = {
     Apple,
     Users,
     XCircle,
-    Bookmark
+    Bookmark,
+    RefreshCw
 };
 
 interface PracticeEntryCardProps {
@@ -44,6 +45,7 @@ export function PracticeEntryCard({
 }: PracticeEntryCardProps) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
     const Icon = ICON_MAP[iconName] || BookOpen;
 
@@ -52,6 +54,7 @@ export function PracticeEntryCard({
         if (isLocked) return;
 
         setLoading(true);
+        setErrorMsg(null);
 
         if (!requiresHeart) {
             router.push(href);
@@ -63,12 +66,12 @@ export function PracticeEntryCard({
             if (result.success) {
                 router.push(href);
             } else {
-                alert(result.message || "ハートが足りません！");
+                setErrorMsg(result.message || "ハートが足りません！");
                 setLoading(false);
             }
         } catch (error) {
             console.error("Error starting practice:", error);
-            alert("エラーが発生しました。");
+            setErrorMsg("エラーが発生しました。");
             setLoading(false);
         }
     };
@@ -123,6 +126,12 @@ export function PracticeEntryCard({
                         </span>
                     )}
                 </div>
+                {errorMsg && (
+                    <div className="mt-3 flex items-center gap-1.5 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-2.5 py-1.5">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                        {errorMsg}
+                    </div>
+                )}
             </div>
         </div>
     );

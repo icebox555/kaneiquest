@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/Dialog";
-import { Edit, Loader2 } from "lucide-react";
+import { Edit, AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface UserEditDialogProps {
@@ -24,9 +24,11 @@ export function UserEditDialog({ user }: UserEditDialogProps) {
     const [loading, setLoading] = useState(false);
     const [name, setName] = useState(user.name);
     const [plan, setPlan] = useState(user.plan);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
     const handleSave = async () => {
         setLoading(true);
+        setErrorMsg(null);
         try {
             // Server Action: verifies admin role and validates plan server-side
             const result = await updateUserProfile(user.id, name, plan);
@@ -36,7 +38,7 @@ export function UserEditDialog({ user }: UserEditDialogProps) {
             router.refresh();
         } catch (error: unknown) {
             const message = error instanceof Error ? error.message : "不明なエラー";
-            alert("更新に失敗しました: " + message);
+            setErrorMsg("更新に失敗しました: " + message);
         } finally {
             setLoading(false);
         }
@@ -84,6 +86,12 @@ export function UserEditDialog({ user }: UserEditDialogProps) {
                         </select>
                     </div>
                 </div>
+                {errorMsg && (
+                    <div className="flex items-center gap-2 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 mb-2">
+                        <AlertCircle className="w-4 h-4 shrink-0" />
+                        {errorMsg}
+                    </div>
+                )}
                 <DialogFooter>
                     <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>
                         キャンセル

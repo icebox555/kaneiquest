@@ -17,7 +17,7 @@ export default async function QuestPage() {
         // Fallback if no quest generated (e.g. no history or no questions)
         // Redirect to practice or show message
         return (
-            <div className="container py-24 px-4 text-center">
+            <div className="container mx-auto py-24 px-4 text-center">
                 <h1 className="text-2xl font-bold mb-4">クエストを準備できませんでした</h1>
                 <p className="mb-8">現時点ではクエストを生成できませんでした。もう少し演習を重ねると、AIが苦手分野を分析します！</p>
                 <a href="/practice" className="text-primary font-bold hover:underline">演習に戻る</a>

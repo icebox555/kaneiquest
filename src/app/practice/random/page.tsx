@@ -25,6 +25,7 @@ export default async function RandomQuizPage() {
                 is_correct
             )
         `)
+        .eq("status", "published")
         .limit(50);
 
     // Fisher-Yates shuffle for unbiased randomization

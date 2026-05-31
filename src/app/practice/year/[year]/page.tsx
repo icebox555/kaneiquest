@@ -18,7 +18,6 @@ export default async function ExamYearPage({ params }: PageProps) {
 
     const { year } = await params;
     const yearInt = parseInt(year);
-    console.log(`Fetching questions for year: ${yearInt}`);
 
     // Fetch questions for this year
     const { data: questions } = await supabase
@@ -35,9 +34,8 @@ export default async function ExamYearPage({ params }: PageProps) {
             )
         `)
         .eq("exam_year", yearInt)
-        .order("question_number", { ascending: true }); // Order by question number
-
-    console.log(`Questions found: ${questions?.length}`);
+        .eq("status", "published")
+        .order("question_number", { ascending: true });
 
     // No shuffling for exam mode
     const examQuestions = questions || [];

@@ -1,10 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
-// import { BookOpen, ArrowRight, Activity, Beaker, Apple, Users } from "lucide-react"; // Removed unused components
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PracticeEntryCard } from "@/components/practice/PracticeEntryCard";
 
-// Helper to get icon based on slug or name
 // Helper to get icon based on slug or name
 const getCategoryIconName = (slug: string) => {
     switch (slug) {
@@ -24,13 +21,19 @@ export default async function PracticePage() {
         redirect("/login");
     }
 
-    const { data: categories } = await supabase
-        .from("categories")
-        .select(`
-            *,
-            questions (count)
-        `)
-        .order("order");
+    const [{ data: categories }, { data: examYearsData }] = await Promise.all([
+        supabase
+            .from("categories")
+            .select(`*, questions (count)`)
+            .order("order"),
+        supabase
+            .from("questions")
+            .select("exam_year")
+            .not("exam_year", "is", null)
+            .order("exam_year", { ascending: false }),
+    ]);
+
+    const examYears = [...new Set(examYearsData?.map(q => q.exam_year) ?? [])] as number[];
 
     return (
         <div className="min-h-screen bg-transparent pt-20 pb-12">
@@ -50,15 +53,20 @@ export default async function PracticePage() {
                         過去問に挑戦 (年度別)
                     </h2>
                     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                        <PracticeEntryCard
-                            href="/practice/year/39"
-                            title="第39回 管理栄養士国家試験"
-                            description="2025年実施。最新の出題傾向を確認しましょう。"
-                            iconName="BookOpen"
-                            bgClass="bg-amber-500/10 text-amber-500"
-                            accentColorClass="text-stone-800 group-hover:text-amber-600"
-                            buttonText="START EXAM"
-                        />
+                        {examYears.length === 0 ? (
+                            <p className="text-stone-400 col-span-3 text-center py-8">過去問データはまだ登録されていません。</p>
+                        ) : examYears.map(year => (
+                            <PracticeEntryCard
+                                key={year}
+                                href={`/practice/year/${year}`}
+                                title={`第${year}回 管理栄養士国家試験`}
+                                description={`${year + 1986}年実施。本番形式で挑戦しましょう。`}
+                                iconName="BookOpen"
+                                bgClass="bg-amber-500/10 text-amber-500"
+                                accentColorClass="text-stone-800 group-hover:text-amber-600"
+                                buttonText="START EXAM"
+                            />
+                        ))}
                     </div>
                 </div>
 

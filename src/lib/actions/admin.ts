@@ -59,6 +59,35 @@ export async function deleteQuestion(
 }
 
 // ---------------------------------------------------------------------------
+// Question publish toggle
+// ---------------------------------------------------------------------------
+
+export async function toggleQuestionStatus(
+    questionId: string,
+    currentStatus: 'draft' | 'published'
+): Promise<{ error?: string }> {
+    try {
+        if (!UUID_REGEX.test(questionId)) return { error: "Invalid question ID" };
+
+        const { supabase } = await verifyAdmin();
+        const newStatus = currentStatus === 'published' ? 'draft' : 'published';
+
+        const { error } = await supabase
+            .from("questions")
+            .update({ status: newStatus })
+            .eq("id", questionId);
+
+        if (error) throw error;
+
+        revalidatePath("/admin/questions");
+        return {};
+    } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        return { error: message };
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Question save (create / update)
 // ---------------------------------------------------------------------------
 
@@ -76,6 +105,7 @@ export type QuestionInput = {
     difficulty: number;
     exam_year?: number;
     question_number?: number;
+    status?: 'draft' | 'published';
     options: OptionInput[];
     /** Option IDs that were removed (update only) */
     optionIdsToDelete?: string[];
@@ -117,6 +147,8 @@ export async function saveQuestion(
 
         const { supabase } = await verifyAdmin();
 
+        const status = data.status === 'draft' ? 'draft' : 'published';
+
         if (data.id) {
             // ----- UPDATE -----
             const { error: qError } = await supabase
@@ -128,6 +160,7 @@ export async function saveQuestion(
                     difficulty,
                     exam_year: data.exam_year ?? null,
                     question_number: data.question_number ?? null,
+                    status,
                 })
                 .eq("id", data.id);
 
@@ -171,6 +204,7 @@ export async function saveQuestion(
                     exam_year: data.exam_year ?? null,
                     question_number: data.question_number ?? null,
                     question_type: "multiple_choice",
+                    status,
                 })
                 .select()
                 .single();

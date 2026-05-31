@@ -47,11 +47,40 @@ export function NotificationMenu() {
         }
     };
 
-    // Initial fetch
+    // Initial fetch + Supabase Realtime subscription
     useEffect(() => {
-        fetchNotifications();
+        let channel: ReturnType<typeof supabase.channel> | null = null;
 
-        // Optional: Realtime subscription could go here
+        const init = async () => {
+            await fetchNotifications();
+
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            channel = supabase
+                .channel(`notifications:${user.id}`)
+                .on(
+                    'postgres_changes',
+                    {
+                        event: 'INSERT',
+                        schema: 'public',
+                        table: 'notifications',
+                        filter: `user_id=eq.${user.id}`,
+                    },
+                    (payload) => {
+                        const newNotification = payload.new as Notification;
+                        setNotifications(prev => [newNotification, ...prev].slice(0, 10));
+                        setUnreadCount(prev => prev + 1);
+                    }
+                )
+                .subscribe();
+        };
+
+        init();
+
+        return () => {
+            if (channel) supabase.removeChannel(channel);
+        };
     }, []);
 
     const markAsRead = async (id: string) => {

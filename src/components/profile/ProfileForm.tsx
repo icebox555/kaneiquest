@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Loader2, Save, Upload, Camera, ZoomIn, X, Check } from "lucide-react";
+import { Save, Camera, ZoomIn, X, Check, AlertCircle, CheckCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/Avatar";
 import imageCompression from "browser-image-compression";
@@ -49,6 +49,11 @@ export function ProfileForm({ initialProfile }: ProfileFormProps) {
     const [confirmPassword, setConfirmPassword] = useState("");
     const [passwordLoading, setPasswordLoading] = useState(false);
 
+    // Message state
+    type Msg = { type: 'success' | 'error'; text: string } | null;
+    const [profileMsg, setProfileMsg] = useState<Msg>(null);
+    const [passwordMsg, setPasswordMsg] = useState<Msg>(null);
+
     const fileInputRef = useRef<HTMLInputElement>(null);
     const supabase = createClient();
 
@@ -68,13 +73,13 @@ export function ProfileForm({ initialProfile }: ProfileFormProps) {
 
         // Validate MIME type (the `accept` attribute on the input can be bypassed)
         if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-            alert("JPEG、PNG、WebP 形式の画像のみアップロードできます。");
+            setProfileMsg({ type: 'error', text: 'JPEG、PNG、WebP 形式の画像のみアップロードできます。' });
             return;
         }
 
         // Validate file size before processing
         if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
-            alert(`ファイルサイズは ${MAX_FILE_SIZE_MB}MB 以下にしてください。`);
+            setProfileMsg({ type: 'error', text: `ファイルサイズは ${MAX_FILE_SIZE_MB}MB 以下にしてください。` });
             return;
         }
 
@@ -113,13 +118,14 @@ export function ProfileForm({ initialProfile }: ProfileFormProps) {
             setTempImgSrc(null); // Cleanup
         } catch (error) {
             console.error("Crop/Compress error:", error);
-            alert("画像の処理に失敗しました。");
+            setProfileMsg({ type: 'error', text: '画像の処理に失敗しました。' });
         }
     };
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+        setProfileMsg(null);
 
         try {
             let publicUrl = avatarUrl;
@@ -161,10 +167,10 @@ export function ProfileForm({ initialProfile }: ProfileFormProps) {
 
             if (error) throw error;
 
-            alert("プロフィールを更新しました。");
+            setProfileMsg({ type: 'success', text: 'プロフィールを更新しました。' });
             router.refresh();
         } catch (error: any) {
-            alert("更新に失敗しました: " + error.message);
+            setProfileMsg({ type: 'error', text: '更新に失敗しました: ' + error.message });
         } finally {
             setLoading(false);
         }
@@ -172,12 +178,13 @@ export function ProfileForm({ initialProfile }: ProfileFormProps) {
 
     const handlePasswordUpdate = async (e: React.FormEvent) => {
         e.preventDefault();
+        setPasswordMsg(null);
         if (newPassword !== confirmPassword) {
-            alert("パスワードが一致しません。");
+            setPasswordMsg({ type: 'error', text: 'パスワードが一致しません。' });
             return;
         }
         if (newPassword.length < 8) {
-            alert("パスワードは8文字以上で入力してください。");
+            setPasswordMsg({ type: 'error', text: 'パスワードは8文字以上で入力してください。' });
             return;
         }
 
@@ -189,11 +196,11 @@ export function ProfileForm({ initialProfile }: ProfileFormProps) {
 
             if (error) throw error;
 
-            alert("パスワードを更新しました。");
+            setPasswordMsg({ type: 'success', text: 'パスワードを更新しました。' });
             setNewPassword("");
             setConfirmPassword("");
         } catch (error: any) {
-            alert("パスワード更新に失敗しました: " + error.message);
+            setPasswordMsg({ type: 'error', text: 'パスワード更新に失敗しました: ' + error.message });
         } finally {
             setPasswordLoading(false);
         }
@@ -263,10 +270,8 @@ export function ProfileForm({ initialProfile }: ProfileFormProps) {
                                         size="sm"
                                         className="text-stone-500 hover:text-red-500 h-auto p-0 text-xs flex items-center gap-1"
                                         onClick={() => {
-                                            if (confirm("アイコン画像を削除してデフォルトに戻しますか？")) {
-                                                setAvatarUrl(null);
-                                                setAvatarFile(null);
-                                            }
+                                            setAvatarUrl(null);
+                                            setAvatarFile(null);
                                         }}
                                     >
                                         <X className="w-3 h-3" />
@@ -276,19 +281,20 @@ export function ProfileForm({ initialProfile }: ProfileFormProps) {
                             </div>
                         </div>
 
+                        {profileMsg && (
+                            <div className={`flex items-center gap-2 text-sm rounded-lg p-3 border ${profileMsg.type === 'success' ? 'bg-green-50 border-green-100 text-green-700' : 'bg-red-50 border-red-100 text-red-600'}`}>
+                                {profileMsg.type === 'success'
+                                    ? <CheckCircle className="w-4 h-4 shrink-0" />
+                                    : <AlertCircle className="w-4 h-4 shrink-0" />
+                                }
+                                {profileMsg.text}
+                            </div>
+                        )}
+
                         <div className="flex justify-end pt-4">
-                            <Button type="submit" className="w-full sm:w-auto text-white" disabled={loading}>
-                                {loading ? (
-                                    <>
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        保存中...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Save className="mr-2 h-4 w-4" />
-                                        変更を保存
-                                    </>
-                                )}
+                            <Button type="submit" className="w-full sm:w-auto text-white" loading={loading}>
+                                <Save className="mr-2 h-4 w-4" />
+                                変更を保存
                             </Button>
                         </div>
                     </form>
@@ -329,16 +335,19 @@ export function ProfileForm({ initialProfile }: ProfileFormProps) {
                             </div>
                         </div>
 
+                        {passwordMsg && (
+                            <div className={`flex items-center gap-2 text-sm rounded-lg p-3 border ${passwordMsg.type === 'success' ? 'bg-green-50 border-green-100 text-green-700' : 'bg-red-50 border-red-100 text-red-600'}`}>
+                                {passwordMsg.type === 'success'
+                                    ? <CheckCircle className="w-4 h-4 shrink-0" />
+                                    : <AlertCircle className="w-4 h-4 shrink-0" />
+                                }
+                                {passwordMsg.text}
+                            </div>
+                        )}
+
                         <div className="flex justify-end">
-                            <Button type="submit" variant="outline" disabled={passwordLoading} className="w-full sm:w-auto border-stone-300 text-stone-700 hover:bg-stone-50">
-                                {passwordLoading ? (
-                                    <>
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        更新中...
-                                    </>
-                                ) : (
-                                    "パスワードを更新"
-                                )}
+                            <Button type="submit" variant="outline" loading={passwordLoading} className="w-full sm:w-auto border-stone-300 text-stone-700 hover:bg-stone-50">
+                                パスワードを更新
                             </Button>
                         </div>
                     </form>

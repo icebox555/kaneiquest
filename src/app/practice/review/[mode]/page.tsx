@@ -19,7 +19,7 @@ export default async function ReviewPlayerPage({ params }: PageProps) {
         redirect("/login");
     }
 
-    if (!['wrong', 'bookmarks'].includes(mode)) {
+    if (!['wrong', 'bookmarks', 'spaced'].includes(mode)) {
         redirect("/practice/review");
     }
 
@@ -51,6 +51,49 @@ export default async function ReviewPlayerPage({ params }: PageProps) {
                        )
                    `)
                 .in("id", questionIds);
+            questionsData = questions || [];
+        }
+
+    } else if (mode === 'spaced') {
+        // Spaced repetition: questions answered wrong 1, 3, or 7+ days ago
+        const now = new Date();
+        const intervals = [1, 3, 7];
+        const windowHours = 20; // allow ±20h tolerance
+
+        const questionIdSet = new Set<string>();
+
+        for (const days of intervals) {
+            const from = new Date(now.getTime() - (days + 1) * 24 * 60 * 60 * 1000);
+            const to = new Date(now.getTime() - (days - 1) * 24 * 60 * 60 * 1000 + windowHours * 60 * 60 * 1000);
+
+            const { data: spacedAttempts } = await supabase
+                .from("question_attempts")
+                .select("question_id")
+                .eq("user_id", user.id)
+                .eq("is_correct", false)
+                .gte("created_at", from.toISOString())
+                .lte("created_at", to.toISOString());
+
+            spacedAttempts?.forEach(a => { if (a.question_id) questionIdSet.add(a.question_id); });
+        }
+
+        const questionIds = Array.from(questionIdSet);
+        if (questionIds.length > 0) {
+            const { data: questions } = await supabase
+                .from("questions")
+                .select(`
+                    id,
+                    content,
+                    explanation,
+                    question_number,
+                    options (
+                        id,
+                        content,
+                        is_correct
+                    )
+                `)
+                .in("id", questionIds)
+                .limit(30);
             questionsData = questions || [];
         }
 
@@ -96,7 +139,7 @@ export default async function ReviewPlayerPage({ params }: PageProps) {
 
                 <div className="mb-8">
                     <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-stone-800 to-stone-500 mb-2">
-                        {mode === 'wrong' ? '間違えた問題の復習' : 'ブックマークした問題の復習'}
+                        {mode === 'wrong' ? '間違えた問題の復習' : mode === 'spaced' ? '間隔反復トレーニング' : 'ブックマークした問題の復習'}
                     </h1>
                     <p className="text-stone-500 text-sm">
                         {questionsData.length}問の問題が見つかりました

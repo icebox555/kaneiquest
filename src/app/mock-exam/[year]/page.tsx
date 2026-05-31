@@ -41,6 +41,7 @@ export default async function MockExamYearPage({ params }: PageProps) {
             )
         `)
         .eq("exam_year", yearInt)
+        .eq("status", "published")
         .order("question_number", { ascending: true });
 
     const examQuestions = questions || [];

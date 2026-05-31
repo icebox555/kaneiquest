@@ -15,7 +15,7 @@ export async function middleware(request: NextRequest) {
             process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
             {
                 cookies: {
-                    getAll() { return request.cookies.getAll() },
+                    getAll() { return response.cookies.getAll() },
                     setAll() { /* read-only here — updateSession already handled writes */ },
                 },
             }

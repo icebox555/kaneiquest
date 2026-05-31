@@ -105,7 +105,17 @@ export async function generateDailyQuest(userId: string): Promise<DailyQuest | n
     // Better approach: Get a larger pool (e.g. 50) and random pick in JS.
     const { data: questionsCandidate } = await supabase
         .from("questions")
-        .select("id, question_text, choices, correct_answer_index, explanation, category_id")
+        .select(`
+            id,
+            content,
+            explanation,
+            question_number,
+            options (
+                id,
+                content,
+                is_correct
+            )
+        `)
         .in("category_id", targetCategoryIds)
         .limit(50); // Get pool
 

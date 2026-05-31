@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { useRouter } from "next/navigation";
-import { Lock, Loader2, AlertCircle } from "lucide-react";
+import { Lock, Loader2, AlertCircle, CheckCircle } from "lucide-react";
 
 export default function UpdatePasswordPage() {
     const router = useRouter();
@@ -17,6 +17,7 @@ export default function UpdatePasswordPage() {
     const [loading, setLoading] = useState(false);
     const [verifying, setVerifying] = useState(true);
     const [error, setError] = useState("");
+    const [success, setSuccess] = useState(false);
 
     // Verify session on mount
     useEffect(() => {
@@ -56,8 +57,8 @@ export default function UpdatePasswordPage() {
             if (error) {
                 setError("パスワードの更新に失敗しました: " + error.message);
             } else {
-                alert("パスワードを更新しました。ダッシュボードへ移動します。");
-                router.push("/dashboard");
+                setSuccess(true);
+                setTimeout(() => router.push("/dashboard"), 2000);
             }
         } catch (err: any) {
             setError("予期せぬエラーが発生しました");
@@ -86,6 +87,12 @@ export default function UpdatePasswordPage() {
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleUpdate} className="space-y-4">
+                            {success && (
+                                <div className="bg-green-50 p-3 rounded-lg flex items-center gap-2 text-green-700 text-sm border border-green-100">
+                                    <CheckCircle className="w-4 h-4 shrink-0" />
+                                    パスワードを更新しました。ダッシュボードへ移動します...
+                                </div>
+                            )}
                             {error && (
                                 <div className="bg-red-50 p-3 rounded-lg flex items-center gap-2 text-red-600 text-sm border border-red-100">
                                     <AlertCircle className="w-4 h-4 shrink-0" />
@@ -126,8 +133,8 @@ export default function UpdatePasswordPage() {
                                     />
                                 </div>
                             </div>
-                            <Button type="submit" className="w-full text-white" disabled={loading}>
-                                {loading ? "更新中..." : "パスワードを変更してログイン"}
+                            <Button type="submit" className="w-full text-white" loading={loading} disabled={success}>
+                                パスワードを変更してログイン
                             </Button>
                         </form>
                     </CardContent>

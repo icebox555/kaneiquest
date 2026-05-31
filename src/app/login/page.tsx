@@ -53,7 +53,8 @@ export default function LoginPage() {
                         try {
                             const url = new URL(next, window.location.origin);
                             if (url.origin === window.location.origin) {
-                                window.location.href = url.pathname + url.search;
+                                router.push(url.pathname + url.search);
+                                router.refresh();
                                 return;
                             }
                         } catch {
@@ -157,27 +158,11 @@ export default function LoginPage() {
                                         />
                                     </div>
                                 </div>
-                                <Button type="submit" className="w-full text-white" disabled={loading}>
-                                    {loading ? "ログイン中..." : "ログイン"}
+                                <Button type="submit" className="w-full text-white" loading={loading}>
+                                    ログイン
                                 </Button>
                             </div>
                         </form>
-
-                        <div className="relative hidden">
-                            {/* Hidden Google Login until implemented */}
-                            <div className="absolute inset-0 flex items-center">
-                                <span className="w-full border-t border-stone-200" />
-                            </div>
-                            <div className="relative flex justify-center text-xs uppercase">
-                                <span className="bg-white px-2 text-stone-400">
-                                    または
-                                </span>
-                            </div>
-                        </div>
-
-                        {/* <Button variant="outline" type="button" className="w-full border-stone-200 text-stone-600 hover:bg-stone-50">
-                            Googleでログイン
-                        </Button> */}
                     </CardContent>
                     <CardFooter>
                         <p className="px-8 text-center text-sm text-stone-500 w-full">

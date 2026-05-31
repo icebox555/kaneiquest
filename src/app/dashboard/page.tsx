@@ -10,7 +10,12 @@ import { MotionWrapper } from "@/components/ui/MotionWrapper";
 import { RankingBoard } from "@/components/ranking/RankingBoard";
 import { RandomQuizButton } from "@/components/practice/RandomQuizButton";
 import { DailyQuestCard } from "@/components/dashboard/DailyQuestCard";
+import { ExamCountdown } from "@/components/dashboard/ExamCountdown";
+import { StreakCard } from "@/components/dashboard/StreakCard";
 import { getWeaknessAnalysis } from "@/lib/ai/coach";
+import { getSchedule } from "@/lib/actions/schedule";
+import { ShareButton } from "@/components/gamification/ShareButton";
+import { HeartActionClaimer } from "@/components/gamification/HeartActionClaimer";
 
 export default async function DashboardPage() {
     const supabase = await createClient();
@@ -48,8 +53,46 @@ export default async function DashboardPage() {
 
     const announcement = announcementData?.value as { message: string; active: boolean } | undefined;
 
+    // Study Schedule (for countdown)
+    const schedule = await getSchedule();
+
+    // Today's question count
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const { count: todayCount } = await supabase
+        .from("question_attempts")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .gte("created_at", todayStart.toISOString());
+
+    // Streak calculation
+    const { data: allTasks } = await supabase
+        .from("study_tasks")
+        .select("scheduled_date, status")
+        .eq("user_id", user.id)
+        .order("scheduled_date", { ascending: false })
+        .limit(365);
+
+    const completedDates = new Set(
+        (allTasks ?? [])
+            .filter(t => t.status === "completed")
+            .map(t => t.scheduled_date)
+    );
+    let streak = 0;
+    const cur = new Date();
+    cur.setHours(0, 0, 0, 0);
+    for (let i = 0; i < 365; i++) {
+        const dateStr = cur.toISOString().split("T")[0];
+        if (completedDates.has(dateStr)) {
+            streak++;
+            cur.setDate(cur.getDate() - 1);
+        } else {
+            break;
+        }
+    }
+
     // AI Coach Weakness Analysis
-    const weaknesses = await getWeaknessAnalysis(user.id);
+    const weaknesses = await getWeaknessAnalysis(user.id).catch(() => []);
     const weaknessName = weaknesses.length > 0 ? weaknesses[0].categoryName : undefined;
 
     // Fetch Recent History (Real Data)
@@ -128,7 +171,9 @@ export default async function DashboardPage() {
     return (
         <div className="min-h-screen bg-transparent pt-20 pb-12">
             <div className="container mx-auto px-4 md:px-6">
-                <MotionWrapper className="mb-8 flex items-center justify-between">
+                <HeartActionClaimer />
+
+                <MotionWrapper className="mb-8 flex items-center justify-between gap-3 flex-wrap">
                     <div>
                         <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-stone-900 to-stone-500">
                             マイページ
@@ -137,9 +182,12 @@ export default async function DashboardPage() {
                             学習の進捗を確認しましょう
                         </p>
                     </div>
-                    <div className={`glass px-4 py-2 rounded-full flex items-center gap-2 border-primary/20 ${profile?.plan === 'pro' ? 'text-primary' : 'text-stone-500'}`}>
-                        <Crown className="w-5 h-5" />
-                        <span className="font-bold uppercase">{plan}</span>
+                    <div className="flex items-center gap-2 flex-wrap justify-end">
+                        <ShareButton userId={user.id} />
+                        <div className={`glass px-4 py-2 rounded-full flex items-center gap-2 border-primary/20 ${profile?.plan === 'pro' ? 'text-primary' : 'text-stone-500'}`}>
+                            <Crown className="w-5 h-5" />
+                            <span className="font-bold uppercase">{plan}</span>
+                        </div>
                     </div>
                 </MotionWrapper>
 
@@ -159,6 +207,21 @@ export default async function DashboardPage() {
                 </MotionWrapper>
 
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    {/* Exam Countdown */}
+                    {schedule && (
+                        <MotionWrapper delay={0.2}>
+                            <ExamCountdown
+                                examDate={schedule.exam_date}
+                                dailyGoalMinutes={schedule.daily_goal_minutes}
+                            />
+                        </MotionWrapper>
+                    )}
+
+                    {/* Streak Card */}
+                    <MotionWrapper delay={0.25}>
+                        <StreakCard streak={streak} totalCompleted={completedDates.size} />
+                    </MotionWrapper>
+
                     {/* Stats Card */}
                     <MotionWrapper delay={0.2} className="glass p-6 rounded-2xl space-y-4">
                         <div className="flex items-center gap-4">
@@ -186,13 +249,20 @@ export default async function DashboardPage() {
                                 <BookOpen className="w-6 h-6" />
                             </div>
                             <div>
-                                <h3 className="text-lg font-bold text-stone-800">学習回数</h3>
-                                <p className="text-sm text-stone-500">これまでの演習実施回数</p>
+                                <h3 className="text-lg font-bold text-stone-800">今日の問題数</h3>
+                                <p className="text-sm text-stone-500">累計 {totalAttempts || 0} セッション</p>
                             </div>
                         </div>
                         <div className="flex items-end justify-between">
-                            <span className="text-3xl font-bold text-stone-800">{totalAttempts || 0}回</span>
-                            <span className="text-sm text-stone-500 mb-1">継続は力なり</span>
+                            <div>
+                                <span className="text-5xl font-extrabold text-stone-800">{todayCount ?? 0}</span>
+                                <span className="text-stone-500 ml-1 text-lg">問</span>
+                            </div>
+                            {schedule && (
+                                <span className="text-xs text-stone-400 mb-1 text-right">
+                                    目標: {schedule.daily_goal_minutes}分/日
+                                </span>
+                            )}
                         </div>
                     </MotionWrapper>
                 </div>

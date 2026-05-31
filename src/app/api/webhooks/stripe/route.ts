@@ -60,10 +60,8 @@ export async function POST(req: Request) {
                         const userId = session.metadata?.userId;
 
                         if (userId && subscriptionId) {
-                            const subscriptionResponse = await stripe.subscriptions.retrieve(subscriptionId);
-                            const subscription = subscriptionResponse as unknown as Stripe.Subscription;
+                            const subscription = await stripe.subscriptions.retrieve(subscriptionId);
 
-                            // Upsert subscription
                             await supabase.from("subscriptions").upsert({
                                 id: subscription.id,
                                 user_id: userId,
@@ -71,19 +69,19 @@ export async function POST(req: Request) {
                                 price_id: subscription.items.data[0].price.id,
                                 metadata: subscription.metadata,
                                 cancel_at_period_end: subscription.cancel_at_period_end,
-                                created_at: new Date((subscription as any).created * 1000).toISOString(),
-                                current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
-                                current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
+                                created_at: new Date(subscription.created * 1000).toISOString(),
+                                current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+                                current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
                             });
 
-                            // Update profile is_pro
-                            await supabase.from("profiles").update({ is_pro: true }).eq("id", userId);
+                            await supabase.from("profiles")
+                                .update({ is_pro: true, plan: 'pro' })
+                                .eq("id", userId);
                         }
                     }
                     break;
                 }
-                case "customer.subscription.updated":
-                case "invoice.payment_succeeded": {
+                case "customer.subscription.updated": {
                     const subscription = event.data.object as Stripe.Subscription;
 
                     const { data: existingSub, error: subLookupError } = await supabase
@@ -97,6 +95,8 @@ export async function POST(req: Request) {
                         break;
                     }
 
+                    const isPro = subscription.status === 'active' || subscription.status === 'trialing';
+
                     await supabase.from("subscriptions").upsert({
                         id: subscription.id,
                         user_id: existingSub.user_id,
@@ -104,18 +104,65 @@ export async function POST(req: Request) {
                         price_id: subscription.items.data[0].price.id,
                         metadata: subscription.metadata,
                         cancel_at_period_end: subscription.cancel_at_period_end,
-                        created_at: new Date((subscription as any).created * 1000).toISOString(),
-                        current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
-                        current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
+                        created_at: new Date(subscription.created * 1000).toISOString(),
+                        current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+                        current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
                     });
 
+                    await supabase.from("profiles")
+                        .update({ is_pro: isPro, plan: isPro ? 'pro' : 'free' })
+                        .eq("id", existingSub.user_id);
+                    break;
+                }
+                case "invoice.payment_succeeded": {
+                    // event.data.object is Invoice, not Subscription
+                    const invoice = event.data.object as Stripe.Invoice;
+                    const subscriptionId = typeof invoice.subscription === 'string'
+                        ? invoice.subscription
+                        : invoice.subscription?.id;
+
+                    if (!subscriptionId) break;
+
+                    const { data: existingSub, error: subLookupError } = await supabase
+                        .from("subscriptions")
+                        .select("user_id")
+                        .eq("id", subscriptionId)
+                        .single();
+
+                    if (subLookupError || !existingSub) {
+                        console.error(`Webhook [invoice.payment_succeeded]: subscription ${subscriptionId} not found in DB. Skipping.`);
+                        break;
+                    }
+
+                    // Fetch current subscription state from Stripe to get accurate status
+                    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
                     const isPro = subscription.status === 'active' || subscription.status === 'trialing';
-                    await supabase.from("profiles").update({ is_pro: isPro }).eq("id", existingSub.user_id);
+
+                    await supabase.from("subscriptions").upsert({
+                        id: subscription.id,
+                        user_id: existingSub.user_id,
+                        status: subscription.status,
+                        price_id: subscription.items.data[0].price.id,
+                        metadata: subscription.metadata,
+                        cancel_at_period_end: subscription.cancel_at_period_end,
+                        created_at: new Date(subscription.created * 1000).toISOString(),
+                        current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+                        current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+                    });
+
+                    await supabase.from("profiles")
+                        .update({ is_pro: isPro, plan: isPro ? 'pro' : 'free' })
+                        .eq("id", existingSub.user_id);
                     break;
                 }
                 case "customer.subscription.deleted": {
                     const subscription = event.data.object as Stripe.Subscription;
-                    const { data: existingSub } = await supabase.from("subscriptions").select("user_id").eq("id", subscription.id).single();
+                    const { data: existingSub } = await supabase
+                        .from("subscriptions")
+                        .select("user_id")
+                        .eq("id", subscription.id)
+                        .single();
+
                     if (existingSub) {
                         await supabase.from("subscriptions").update({
                             status: subscription.status,
@@ -123,7 +170,9 @@ export async function POST(req: Request) {
                             ended_at: new Date().toISOString()
                         }).eq("id", subscription.id);
 
-                        await supabase.from("profiles").update({ is_pro: false }).eq("id", existingSub.user_id);
+                        await supabase.from("profiles")
+                            .update({ is_pro: false, plan: 'free' })
+                            .eq("id", existingSub.user_id);
                     }
                     break;
                 }

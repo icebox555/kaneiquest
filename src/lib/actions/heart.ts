@@ -3,7 +3,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
-const MAX_HEARTS = 7;
+const REGEN_CAP = 7;     // Auto-regen fills up to this value only
+const MAX_HEARTS = 99;   // Absolute ceiling (earn hearts beyond REGEN_CAP via actions)
 const REGEN_MINUTES = 15;
 const REGEN_MS = REGEN_MINUTES * 60 * 1000;
 
@@ -37,15 +38,16 @@ export async function getHeartStatus(userId?: string): Promise<HeartStatus> {
     }
 
     // Unlimited for Pro
-    if (profile.plan === 'pro' || profile.plan === 'premium') { // Assuming 'pro' or check your plan logic
-        return { hearts: MAX_HEARTS, maxHearts: MAX_HEARTS, nextRegenTime: null, isUnlimited: true };
+    if (profile.plan === 'pro' || profile.plan === 'premium') {
+        return { hearts: profile.hearts ?? REGEN_CAP, maxHearts: REGEN_CAP, nextRegenTime: null, isUnlimited: true };
     }
 
     let { hearts, last_heart_regenerated_at } = profile;
 
-    // If already at max, no regen needed
-    if (hearts >= MAX_HEARTS) {
-        return { hearts: MAX_HEARTS, maxHearts: MAX_HEARTS, nextRegenTime: null, isUnlimited: false };
+    // Regen only applies when below REGEN_CAP (7).
+    // Hearts above REGEN_CAP are earned via actions and are not auto-regenerated.
+    if (hearts >= REGEN_CAP) {
+        return { hearts, maxHearts: REGEN_CAP, nextRegenTime: null, isUnlimited: false };
     }
 
     // Calculate regeneration
@@ -57,17 +59,10 @@ export async function getHeartStatus(userId?: string): Promise<HeartStatus> {
         const heartsRecovered = Math.floor(elapsed / REGEN_MS);
 
         if (heartsRecovered > 0) {
-            const newHearts = Math.min(MAX_HEARTS, hearts + heartsRecovered);
+            // Regen fills only up to REGEN_CAP (7), never beyond
+            const newHearts = Math.min(REGEN_CAP, hearts + heartsRecovered);
+            const newLastRegen = new Date(lastRegen.getTime() + (heartsRecovered * REGEN_MS));
 
-            // Calculate new last regen time (preserve progress)
-            // If we reached max, we effectively stop the timer, but for DB consistency we can just update hearts
-            // If we didn't reach max, we advance last_regenerated_at by heartsRecovered * REGEN_MS
-            let newLastRegen = new Date(lastRegen.getTime() + (heartsRecovered * REGEN_MS));
-
-            // If we capped at MAX_HEARTS, the precise time doesn't matter as much until we consume again, 
-            // but let's keep it clean.
-
-            // Update DB
             const { error: updateError } = await supabase
                 .from('profiles')
                 .update({
@@ -83,15 +78,15 @@ export async function getHeartStatus(userId?: string): Promise<HeartStatus> {
         }
     }
 
-    // Recalculate next regen time if still distinct from max
+    // Show regen timer only while below REGEN_CAP
     let nextRegenTime = null;
-    if (hearts < MAX_HEARTS) {
+    if (hearts < REGEN_CAP) {
         nextRegenTime = new Date(new Date(last_heart_regenerated_at).getTime() + REGEN_MS);
     }
 
     return {
         hearts,
-        maxHearts: MAX_HEARTS,
+        maxHearts: REGEN_CAP,
         nextRegenTime,
         isUnlimited: false
     };
@@ -146,6 +141,105 @@ export async function consumeHeart(): Promise<{ success: boolean; message?: stri
     return { success: true };
 }
 
+// --- Heart Earning System ---
+
+const DAILY_LIMITS: Record<string, number> = {
+    daily_login: 1,
+    quiz_complete: 1,
+    share: 3,
+    referral_signup: 10,
+};
+
+export async function earnHeart(actionType: string): Promise<{ success: boolean; message?: string }> {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, message: "Login required" };
+
+    const limit = DAILY_LIMITS[actionType];
+    if (limit === undefined) return { success: false, message: "Unknown action" };
+
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const { count } = await supabase
+        .from('heart_action_logs')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('action_type', actionType)
+        .gte('created_at', todayStart.toISOString());
+
+    if ((count ?? 0) >= limit) {
+        return { success: false, message: "本日の上限に達しました" };
+    }
+
+    // Log the action first (guard against double-execution)
+    const { error: logError } = await supabase.from('heart_action_logs').insert({
+        user_id: user.id,
+        action_type: actionType,
+    });
+    if (logError) return { success: false, message: "Failed to log action" };
+
+    // Add heart, capped at MAX_HEARTS
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('hearts')
+        .eq('id', user.id)
+        .single();
+
+    if (profile) {
+        // Can exceed REGEN_CAP (7) via actions, capped at hard MAX_HEARTS (99)
+        const newHearts = Math.min(MAX_HEARTS, profile.hearts + 1);
+        await supabase.from('profiles').update({ hearts: newHearts }).eq('id', user.id);
+    }
+
+    revalidatePath('/dashboard');
+    revalidatePath('/practice');
+    return { success: true };
+}
+
+// Called when a new user signs up via a referral link — rewards the referrer
+export async function processReferral(referrerId: string): Promise<{ success: boolean }> {
+    if (!referrerId) return { success: false };
+    const supabase = await createClient();
+
+    // Verify referrer exists and is not the current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || user.id === referrerId) return { success: false };
+
+    const { data: referrer } = await supabase
+        .from('profiles')
+        .select('hearts')
+        .eq('id', referrerId)
+        .single();
+
+    if (!referrer) return { success: false };
+
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    // Check daily referral limit for the referrer
+    const { count } = await supabase
+        .from('heart_action_logs')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', referrerId)
+        .eq('action_type', 'referral_signup')
+        .gte('created_at', todayStart.toISOString());
+
+    if ((count ?? 0) >= DAILY_LIMITS.referral_signup) return { success: false };
+
+    await supabase.from('heart_action_logs').insert({
+        user_id: referrerId,
+        action_type: 'referral_signup',
+    });
+
+    const newHearts = Math.min(MAX_HEARTS, referrer.hearts + 1);  // cap at 99
+    await supabase.from('profiles').update({ hearts: newHearts }).eq('id', referrerId);
+
+    return { success: true };
+}
+
+// --- Original sendHeart ---
+
 export async function sendHeart(targetUserId: string): Promise<{ success: boolean; message?: string }> {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -188,7 +282,7 @@ export async function sendHeart(targetUserId: string): Promise<{ success: boolea
     // Fetch receiver profile first to check existence and current hearts
     const { data: receiver } = await supabase.from('profiles').select('hearts').eq('id', targetUserId).single();
     if (receiver) {
-        await supabase.from('profiles').update({ hearts: receiver.hearts + 1 }).eq('id', targetUserId);
+        await supabase.from('profiles').update({ hearts: Math.min(MAX_HEARTS, receiver.hearts + 1) }).eq('id', targetUserId);
     }
 
     // 3. Reward sender (XP + 10)

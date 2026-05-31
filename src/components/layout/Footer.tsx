@@ -9,7 +9,7 @@ export function Footer() {
     if (pathname.startsWith("/admin")) return null;
 
     return (
-        <footer className="w-full border-t border-stone-200 bg-stone-50 py-10">
+        <footer className="hidden md:block w-full border-t border-stone-200 bg-stone-50 py-10">
             <div className="container mx-auto flex flex-col md:flex-row items-center justify-between gap-6 px-4">
                 <div className="text-center md:text-left">
                     <p className="text-sm text-stone-500">

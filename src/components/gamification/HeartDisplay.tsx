@@ -52,12 +52,27 @@ export function HeartDisplay() {
 
     if (!status) return null; // Loading state
 
+    const overflowing = status.hearts > status.maxHearts;
+
     return (
-        <div className="flex items-center gap-1.5 bg-white/50 backdrop-blur-sm px-3 py-1.5 rounded-full border border-stone-200 shadow-sm text-sm font-bold text-stone-600" title="ハート (スタミナ)">
+        <div
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border shadow-sm text-sm font-bold transition-colors
+                ${overflowing
+                    ? "bg-rose-50 border-rose-200 text-rose-600"
+                    : "bg-white/50 backdrop-blur-sm border-stone-200 text-stone-600"
+                }`}
+            title="ハート (スタミナ) — 7を超えた分はアクションで獲得したボーナス"
+        >
             <Heart className={`w-4 h-4 ${status.hearts > 0 ? "text-rose-500 fill-rose-500" : "text-stone-300"}`} />
 
             {status.isUnlimited ? (
                 <InfinityIcon className="w-4 h-4 text-rose-500" />
+            ) : overflowing ? (
+                // Hearts above regen cap — show count with + badge
+                <div className="flex items-baseline gap-0.5">
+                    <span className="text-rose-600">{status.hearts}</span>
+                    <span className="text-rose-300 text-[10px] font-normal">+{status.hearts - status.maxHearts}</span>
+                </div>
             ) : (
                 <div className="flex items-baseline gap-1">
                     <span className={status.hearts === 0 ? "text-rose-500" : "text-stone-700"}>

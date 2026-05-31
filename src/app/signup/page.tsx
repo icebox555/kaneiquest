@@ -1,27 +1,34 @@
 'use client';
 
 import Link from "next/link";
-import { Mail, Lock, Hexagon, AlertCircle, User } from "lucide-react";
+import { Mail, Lock, Hexagon, AlertCircle, CheckCircle, User } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/Card";
 import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 export default function SignupPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const supabase = createClient();
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [error, setError] = useState("");
+    const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
     const [loading, setLoading] = useState(false);
 
     const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault();
-        setError("");
+        setMessage(null);
+
+        if (password.length < 6) {
+            setMessage({ type: 'error', text: 'パスワードは6文字以上で入力してください' });
+            return;
+        }
+
         setLoading(true);
 
         try {
@@ -36,15 +43,18 @@ export default function SignupPage() {
             });
 
             if (error) {
-                setError(error.message);
+                setMessage({ type: 'error', text: error.message });
             } else {
-                // Success: Usually Supabase sends a confirmation email.
-                // For this demo, check if auto-confirm is on or warn user.
-                alert("登録確認メールを送信しました。メールボックスを確認してください。");
-                router.push('/login');
+                // Store referral code so HeartActionClaimer can process it after first login
+                const ref = searchParams.get('ref');
+                if (ref) {
+                    localStorage.setItem('kanei_ref', ref);
+                }
+                setMessage({ type: 'success', text: '登録確認メールを送信しました。メールボックスを確認してください。' });
+                setTimeout(() => router.push('/login'), 3000);
             }
         } catch (err) {
-            setError("予期せぬエラーが発生しました");
+            setMessage({ type: 'error', text: '予期せぬエラーが発生しました' });
             console.error(err);
         } finally {
             setLoading(false);
@@ -52,54 +62,58 @@ export default function SignupPage() {
     };
 
     return (
-        <div className="container relative flex-col items-center justify-center grid lg:max-w-none lg:grid-cols-2 lg:px-0 h-[calc(100vh-64px)] overflow-hidden">
+        <div className="container relative min-h-[calc(100vh-64px)] flex-col items-center justify-center grid lg:max-w-none lg:grid-cols-2 lg:px-0">
             {/* Left Side (Visual) */}
-            <div className="relative hidden h-full flex-col p-10 text-white lg:flex border-r border-slate-800">
-                <div className="absolute inset-0 bg-slate-900">
-                    <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-slate-800 via-slate-900 to-black opacity-80" />
-                    {/* Abstract Shapes */}
-                    <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px]" />
+            <div className="relative hidden h-full flex-col bg-stone-50 p-10 text-stone-800 lg:flex dark:border-r border-stone-200">
+                <div className="absolute inset-0 bg-stone-100/50">
+                    <div className="absolute top-20 right-20 w-[400px] h-[400px] bg-primary/10 rounded-full blur-[100px]" />
+                    <div className="absolute bottom-20 left-20 w-[300px] h-[300px] bg-secondary/10 rounded-full blur-[80px]" />
                 </div>
 
                 <div className="relative z-20 flex items-center gap-2 text-lg font-medium">
                     <Hexagon className="h-6 w-6 text-primary" />
-                    <span className="font-bold text-xl tracking-tight text-white">Kanei Quest</span>
+                    <span className="font-bold text-xl tracking-tight text-stone-800">Kanei Quest</span>
                 </div>
                 <div className="relative z-20 mt-auto space-y-4">
+                    <h2 className="text-3xl font-bold tracking-tight text-stone-800">一緒に合格を目指そう</h2>
                     <blockquote className="space-y-2">
-                        <p className="text-lg">
+                        <p className="text-lg text-stone-600 leading-relaxed">
                             &ldquo;このアプリのおかげで、苦手だった生化学を克服できました。毎日の通学時間が、最高の学習時間に変わりました。&rdquo;
                         </p>
-                        <footer className="text-sm text-slate-400">田中 美咲 さん (第38回管理栄養士国家試験 合格)</footer>
+                        <footer className="text-sm text-stone-500">田中 美咲 さん (第38回管理栄養士国家試験 合格)</footer>
                     </blockquote>
                 </div>
             </div>
 
             {/* Right Side (Form) */}
-            <div className="lg:p-8 flex items-center justify-center relative w-full">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-slate-900/50 to-transparent pointer-events-none lg:hidden" />
-
-                <Card className="mx-auto w-full sm:w-[400px] bg-transparent border-0 shadow-none sm:bg-slate-900/40 sm:border-slate-800 sm:backdrop-blur-md">
+            <div className="lg:p-8 flex items-center justify-center relative w-full py-12">
+                <Card className="mx-auto w-full sm:w-[400px] glass border-stone-200 shadow-xl">
                     <CardHeader className="space-y-1 text-center">
-                        <CardTitle className="text-3xl font-bold tracking-tight">アカウント作成</CardTitle>
-                        <CardDescription>
+                        <CardTitle className="text-2xl font-bold tracking-tight text-stone-800">アカウント作成</CardTitle>
+                        <CardDescription className="text-stone-500">
                             まずは無料で始めましょう
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="grid gap-4">
                         <form onSubmit={handleSignup}>
                             <div className="grid gap-4">
-                                {error && (
-                                    <div className="bg-red-500/10 border border-red-500/20 p-3 rounded-lg flex items-center gap-2 text-red-400 text-sm">
+                                {message?.type === 'error' && (
+                                    <div className="bg-red-50 border border-red-100 p-3 rounded-lg flex items-center gap-2 text-red-600 text-sm">
                                         <AlertCircle className="w-4 h-4" />
-                                        {error}
+                                        {message.text}
+                                    </div>
+                                )}
+                                {message?.type === 'success' && (
+                                    <div className="bg-green-50 border border-green-100 p-3 rounded-lg flex items-center gap-2 text-green-600 text-sm">
+                                        <CheckCircle className="w-4 h-4" />
+                                        {message.text}
                                     </div>
                                 )}
                                 <div className="grid gap-2">
-                                    <Label htmlFor="name">お名前 (表示名)</Label>
+                                    <Label htmlFor="name" className="text-stone-700">お名前 (表示名)</Label>
                                     <div className="relative">
                                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
-                                            <User className="h-4 w-4 text-slate-500" />
+                                            <User className="h-4 w-4 text-stone-400" />
                                         </div>
                                         <Input
                                             id="name"
@@ -109,16 +123,16 @@ export default function SignupPage() {
                                             autoCorrect="off"
                                             value={name}
                                             onChange={(e) => setName(e.target.value)}
-                                            className="pl-10"
+                                            className="pl-10 bg-white border-stone-200 text-stone-800 focus:ring-primary focus:border-primary placeholder:text-stone-300"
                                             required
                                         />
                                     </div>
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label htmlFor="email">Email</Label>
+                                    <Label htmlFor="email" className="text-stone-700">Email</Label>
                                     <div className="relative">
                                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
-                                            <Mail className="h-4 w-4 text-slate-500" />
+                                            <Mail className="h-4 w-4 text-stone-400" />
                                         </div>
                                         <Input
                                             id="email"
@@ -129,16 +143,16 @@ export default function SignupPage() {
                                             autoCorrect="off"
                                             value={email}
                                             onChange={(e) => setEmail(e.target.value)}
-                                            className="pl-10"
+                                            className="pl-10 bg-white border-stone-200 text-stone-800 focus:ring-primary focus:border-primary placeholder:text-stone-300"
                                             required
                                         />
                                     </div>
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label htmlFor="password">Password</Label>
+                                    <Label htmlFor="password" className="text-stone-700">Password</Label>
                                     <div className="relative">
                                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
-                                            <Lock className="h-4 w-4 text-slate-500" />
+                                            <Lock className="h-4 w-4 text-stone-400" />
                                         </div>
                                         <Input
                                             id="password"
@@ -147,38 +161,23 @@ export default function SignupPage() {
                                             autoComplete="new-password"
                                             value={password}
                                             onChange={(e) => setPassword(e.target.value)}
-                                            className="pl-10"
+                                            className="pl-10 bg-white border-stone-200 text-stone-800 focus:ring-primary focus:border-primary placeholder:text-stone-300"
                                             required
                                         />
                                     </div>
                                 </div>
-                                <Button type="submit" className="w-full" variant="premium" loading={loading}>
+                                <Button type="submit" className="w-full text-white" loading={loading}>
                                     新規登録 (無料)
                                 </Button>
                             </div>
                         </form>
-
-                        <div className="relative">
-                            <div className="absolute inset-0 flex items-center">
-                                <span className="w-full border-t border-slate-800" />
-                            </div>
-                            <div className="relative flex justify-center text-xs uppercase">
-                                <span className="bg-background px-2 text-slate-500">
-                                    または
-                                </span>
-                            </div>
-                        </div>
-
-                        <Button variant="outline" type="button" className="w-full">
-                            Googleで登録
-                        </Button>
                     </CardContent>
                     <CardFooter>
-                        <p className="px-8 text-center text-sm text-slate-500 w-full">
+                        <p className="px-8 text-center text-sm text-stone-500 w-full">
                             すでにアカウントをお持ちの場合は{" "}
                             <Link
                                 href="/login"
-                                className="underline underline-offset-4 hover:text-primary text-slate-400"
+                                className="underline underline-offset-4 hover:text-primary text-stone-600"
                             >
                                 ログイン
                             </Link>

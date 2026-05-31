@@ -30,7 +30,7 @@ export default async function ProfilePage() {
 
     return (
         <div className="min-h-screen bg-transparent pt-24 pb-12">
-            <div className="container max-w-2xl px-4 md:px-6">
+            <div className="container max-w-2xl mx-auto px-4 md:px-6">
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-stone-800 to-stone-600">
                         マイプロフィール

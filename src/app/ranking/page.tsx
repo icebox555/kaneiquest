@@ -18,7 +18,7 @@ export default async function RankingPage() {
 
     return (
         <div className="min-h-screen bg-transparent pt-20 pb-12">
-            <div className="container max-w-2xl px-4 md:px-0">
+            <div className="container max-w-2xl mx-auto px-4 md:px-0">
 
                 {/* Header */}
                 <MotionWrapper className="text-center mb-6 relative">

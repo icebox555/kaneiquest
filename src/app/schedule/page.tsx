@@ -66,7 +66,7 @@ export default async function SchedulePage() {
     if (!schedule) {
         return (
             <div className="min-h-screen bg-transparent pt-24 pb-12">
-                <div className="container max-w-4xl px-4 md:px-6">
+                <div className="container max-w-4xl mx-auto px-4 md:px-6">
                     <div className="mb-8 text-center">
                         <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-stone-800 to-stone-600">
                             学習スケジュール

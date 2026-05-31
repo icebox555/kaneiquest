@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import { Switch } from "@/components/ui/Switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Loader2, Save } from "lucide-react";
+import { Save, AlertCircle, CheckCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface SettingsFormProps {
@@ -25,10 +25,12 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
     const [loading, setLoading] = useState(false);
     const [maintenanceMode, setMaintenanceMode] = useState(initialSettings.maintenance_mode);
     const [announcement, setAnnouncement] = useState(initialSettings.announcement);
+    const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
     const supabase = createClient();
 
     const handleSave = async () => {
         setLoading(true);
+        setMsg(null);
         try {
             // Update Maintenance Mode
             const { error: maintenanceError } = await supabase
@@ -50,10 +52,10 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
 
             if (announcementError) throw announcementError;
 
-            alert("設定を保存しました。");
+            setMsg({ type: 'success', text: '設定を保存しました。' });
             router.refresh();
         } catch (error: any) {
-            alert("保存に失敗しました: " + error.message);
+            setMsg({ type: 'error', text: '保存に失敗しました: ' + error.message });
         } finally {
             setLoading(false);
         }
@@ -119,19 +121,16 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
                 </CardContent>
             </Card>
 
+            {msg && (
+                <div className={`flex items-center gap-2 text-sm rounded-lg p-3 border ${msg.type === 'success' ? 'bg-green-500/10 border-green-500/20 text-green-400' : 'bg-red-500/10 border-red-500/20 text-red-400'}`}>
+                    {msg.type === 'success' ? <CheckCircle className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
+                    {msg.text}
+                </div>
+            )}
             <div className="flex justify-end">
-                <Button variant="premium" onClick={handleSave} disabled={loading} className="w-full sm:w-auto">
-                    {loading ? (
-                        <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            保存中...
-                        </>
-                    ) : (
-                        <>
-                            <Save className="mr-2 h-4 w-4" />
-                            設定を保存
-                        </>
-                    )}
+                <Button variant="premium" onClick={handleSave} loading={loading} className="w-full sm:w-auto">
+                    <Save className="mr-2 h-4 w-4" />
+                    設定を保存
                 </Button>
             </div>
         </div>

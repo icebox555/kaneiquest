@@ -11,13 +11,13 @@ export default async function MockExamPage() {
         redirect("/login");
     }
 
-    // Fetch distinct years (getting all IDs for now and filtering in JS to avoid complicated group by)
-    // Actually, let's just get all questions minimal data
-    const { data: questions } = await supabase
+    const { data: examYearsData } = await supabase
         .from("questions")
-        .select("exam_year");
+        .select("exam_year")
+        .not("exam_year", "is", null)
+        .order("exam_year", { ascending: false });
 
-    const uniqueYears = Array.from(new Set(questions?.map(q => q.exam_year).filter(y => y))).sort((a, b) => (b as number) - (a as number));
+    const uniqueYears = [...new Set(examYearsData?.map(q => q.exam_year) ?? [])] as number[];
 
     return (
         <div className="min-h-screen bg-transparent pt-20 pb-12">
