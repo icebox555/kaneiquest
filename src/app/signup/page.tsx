@@ -8,9 +8,17 @@ import { Label } from "@/components/ui/Label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/Card";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useState, Suspense } from "react";
 
 export default function SignupPage() {
+    return (
+        <Suspense>
+            <SignupForm />
+        </Suspense>
+    );
+}
+
+function SignupForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const supabase = createClient();
