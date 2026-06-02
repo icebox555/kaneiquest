@@ -15,7 +15,10 @@ export async function middleware(request: NextRequest) {
             process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
             {
                 cookies: {
-                    getAll() { return response.cookies.getAll() },
+                    // Read auth cookies from the incoming request. Using response.cookies
+                    // here would miss the session cookie whenever the token wasn't refreshed,
+                    // causing getUser() to return null and bouncing admins back to /login.
+                    getAll() { return request.cookies.getAll() },
                     setAll() { /* read-only here — updateSession already handled writes */ },
                 },
             }

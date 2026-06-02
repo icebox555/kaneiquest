@@ -75,8 +75,18 @@ export async function POST(req: Request) {
                                 current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
                             });
 
+                            // Stripe Checkout collects the cardholder's name in
+                            // customer_details.name. Persist it as the (private) real
+                            // name. Only set it when present so we never overwrite an
+                            // existing value with null.
+                            const fullName = session.customer_details?.name;
+
                             await supabase.from("profiles")
-                                .update({ is_pro: true, plan: 'pro' })
+                                .update({
+                                    is_pro: true,
+                                    plan: 'pro',
+                                    ...(fullName ? { full_name: fullName } : {}),
+                                })
                                 .eq("id", userId);
                         }
                     }

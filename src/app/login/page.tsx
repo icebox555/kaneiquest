@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { Mail, Lock, Hexagon, AlertCircle } from "lucide-react";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -11,7 +10,6 @@ import { Label } from "@/components/ui/Label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/Card";
 
 export default function LoginPage() {
-    const router = useRouter();
     const supabase = createClient();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -53,8 +51,10 @@ export default function LoginPage() {
                         try {
                             const url = new URL(next, window.location.origin);
                             if (url.origin === window.location.origin) {
-                                router.push(url.pathname + url.search);
-                                router.refresh();
+                                // Hard navigation guarantees the server re-renders with the
+                                // freshly written Supabase auth cookies. A soft router.push()
+                                // here can race the cookie write and leave the user on /login.
+                                window.location.assign(url.pathname + url.search);
                                 return;
                             }
                         } catch {
@@ -62,12 +62,10 @@ export default function LoginPage() {
                         }
                     }
 
-                    if (profile?.role === 'admin') {
-                        router.push('/admin');
-                    } else {
-                        router.push('/dashboard');
-                    }
-                    router.refresh();
+                    // Hard navigation (see note above) instead of router.push + refresh,
+                    // which races the auth cookie write and silently fails to redirect.
+                    window.location.assign(profile?.role === 'admin' ? '/admin' : '/dashboard');
+                    return;
                 }
             }
         } catch {

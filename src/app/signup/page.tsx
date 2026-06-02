@@ -22,7 +22,7 @@ function SignupForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const supabase = createClient();
-    const [name, setName] = useState("");
+    const [nickname, setNickname] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
@@ -45,7 +45,10 @@ function SignupForm() {
                 password,
                 options: {
                     data: {
-                        name: name,
+                        // Public display name shown on leaderboards etc. Users are asked
+                        // for a nickname here, never their real name (collected only at
+                        // Pro checkout via Stripe and stored separately in full_name).
+                        name: nickname,
                     },
                 },
             });
@@ -118,23 +121,26 @@ function SignupForm() {
                                     </div>
                                 )}
                                 <div className="grid gap-2">
-                                    <Label htmlFor="name" className="text-stone-700">お名前 (表示名)</Label>
+                                    <Label htmlFor="nickname" className="text-stone-700">ニックネーム</Label>
                                     <div className="relative">
                                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
                                             <User className="h-4 w-4 text-stone-400" />
                                         </div>
                                         <Input
-                                            id="name"
-                                            placeholder="栄養 花子"
+                                            id="nickname"
+                                            placeholder="えいよう先生"
                                             type="text"
                                             autoCapitalize="none"
                                             autoCorrect="off"
-                                            value={name}
-                                            onChange={(e) => setName(e.target.value)}
+                                            value={nickname}
+                                            onChange={(e) => setNickname(e.target.value)}
                                             className="pl-10 bg-white border-stone-200 text-stone-800 focus:ring-primary focus:border-primary placeholder:text-stone-300"
                                             required
                                         />
                                     </div>
+                                    <p className="text-xs text-stone-400">
+                                        ランキングなどで他のユーザーに公開されます。本名は使わないでください。
+                                    </p>
                                 </div>
                                 <div className="grid gap-2">
                                     <Label htmlFor="email" className="text-stone-700">Email</Label>
