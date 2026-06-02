@@ -12,6 +12,7 @@ import { RandomQuizButton } from "@/components/practice/RandomQuizButton";
 import { DailyQuestCard } from "@/components/dashboard/DailyQuestCard";
 import { ExamCountdown } from "@/components/dashboard/ExamCountdown";
 import { StreakCard } from "@/components/dashboard/StreakCard";
+import { CollapsibleSection } from "@/components/dashboard/CollapsibleSection";
 import { getWeaknessAnalysis } from "@/lib/ai/coach";
 import { getSchedule } from "@/lib/actions/schedule";
 import { ShareButton } from "@/components/gamification/ShareButton";
@@ -173,12 +174,12 @@ export default async function DashboardPage() {
             <div className="container mx-auto px-4 md:px-6">
                 <HeartActionClaimer />
 
-                <MotionWrapper className="mb-8 flex items-center justify-between gap-3 flex-wrap">
+                <MotionWrapper className="mb-5 md:mb-8 flex items-center justify-between gap-3 flex-wrap">
                     <div>
-                        <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-stone-900 to-stone-500">
+                        <h1 className="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-stone-900 to-stone-500">
                             マイページ
                         </h1>
-                        <p className="text-stone-500 mt-2">
+                        <p className="text-sm md:text-base text-stone-500 mt-1 md:mt-2">
                             学習の進捗を確認しましょう
                         </p>
                     </div>
@@ -202,11 +203,11 @@ export default async function DashboardPage() {
                 )}
 
                 {/* AI Learning Coach */}
-                <MotionWrapper delay={0.15}>
+                <MotionWrapper delay={0.15} className="mb-4 md:mb-6">
                     <DailyQuestCard weaknessName={weaknessName} />
                 </MotionWrapper>
 
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-3 md:gap-6 grid-cols-2 lg:grid-cols-3">
                     {/* Exam Countdown */}
                     {schedule && (
                         <MotionWrapper delay={0.2}>
@@ -223,14 +224,14 @@ export default async function DashboardPage() {
                     </MotionWrapper>
 
                     {/* Stats Card */}
-                    <MotionWrapper delay={0.2} className="glass p-6 rounded-2xl space-y-4">
-                        <div className="flex items-center gap-4">
-                            <div className="p-3 rounded-xl bg-primary/10 text-primary">
-                                <Trophy className="w-6 h-6" />
+                    <MotionWrapper delay={0.2} className="glass p-4 md:p-6 rounded-2xl space-y-3 md:space-y-4">
+                        <div className="flex items-center gap-3 md:gap-4">
+                            <div className="p-2.5 md:p-3 rounded-xl bg-primary/10 text-primary">
+                                <Trophy className="w-5 h-5 md:w-6 md:h-6" />
                             </div>
                             <div>
-                                <h3 className="text-lg font-bold text-stone-800">現在のレベル</h3>
-                                <p className="text-sm text-stone-500">ランク {Math.floor(level / 10) + 1} (Lv.{level})</p>
+                                <h3 className="text-base md:text-lg font-bold text-stone-800">現在のレベル</h3>
+                                <p className="text-xs md:text-sm text-stone-500">ランク {Math.floor(level / 10) + 1} (Lv.{level})</p>
                             </div>
                         </div>
                         <div className="h-2 w-full bg-stone-200 rounded-full overflow-hidden">
@@ -243,20 +244,20 @@ export default async function DashboardPage() {
                     </MotionWrapper>
 
                     {/* Progress Card */}
-                    <MotionWrapper delay={0.3} className="glass p-6 rounded-2xl space-y-4">
-                        <div className="flex items-center gap-4">
-                            <div className="p-3 rounded-xl bg-secondary/10 text-secondary">
-                                <BookOpen className="w-6 h-6" />
+                    <MotionWrapper delay={0.3} className="glass p-4 md:p-6 rounded-2xl space-y-3 md:space-y-4">
+                        <div className="flex items-center gap-3 md:gap-4">
+                            <div className="p-2.5 md:p-3 rounded-xl bg-secondary/10 text-secondary">
+                                <BookOpen className="w-5 h-5 md:w-6 md:h-6" />
                             </div>
                             <div>
-                                <h3 className="text-lg font-bold text-stone-800">今日の問題数</h3>
-                                <p className="text-sm text-stone-500">累計 {totalAttempts || 0} セッション</p>
+                                <h3 className="text-base md:text-lg font-bold text-stone-800">今日の問題数</h3>
+                                <p className="text-xs md:text-sm text-stone-500">累計 {totalAttempts || 0} セッション</p>
                             </div>
                         </div>
                         <div className="flex items-end justify-between">
                             <div>
-                                <span className="text-5xl font-extrabold text-stone-800">{todayCount ?? 0}</span>
-                                <span className="text-stone-500 ml-1 text-lg">問</span>
+                                <span className="text-4xl md:text-5xl font-extrabold text-stone-800">{todayCount ?? 0}</span>
+                                <span className="text-stone-500 ml-1 text-base md:text-lg">問</span>
                             </div>
                             {schedule && (
                                 <span className="text-xs text-stone-400 mb-1 text-right">
@@ -268,9 +269,9 @@ export default async function DashboardPage() {
                 </div>
 
                 {/* Ranking Section */}
-                <div className="mt-8">
-                    <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-xl font-bold text-stone-800">週間ランキング (TOP 5)</h2>
+                <div className="mt-6 md:mt-8">
+                    <div className="flex items-center justify-between mb-3 md:mb-4">
+                        <h2 className="text-lg md:text-xl font-bold text-stone-800">週間ランキング (TOP 5)</h2>
                         <Link href="/ranking" className="text-sm font-bold text-primary flex items-center gap-1 hover:underline">
                             すべて見る <ArrowRight className="w-3 h-3" />
                         </Link>
@@ -279,37 +280,39 @@ export default async function DashboardPage() {
                 </div>
 
                 {/* Analytics Section */}
-                <div className="mt-8 grid gap-6 lg:grid-cols-2">
-                    <MotionWrapper delay={0.4} className="glass p-6 rounded-2xl">
-                        <div className="flex items-center gap-3 mb-6">
-                            <div className="p-2 rounded-lg bg-amber-500/10 text-amber-500">
-                                <Activity className="w-5 h-5" />
+                <CollapsibleSection title="学習分析" className="mt-6 md:mt-8">
+                    <div className="grid gap-4 md:gap-6 lg:grid-cols-2">
+                        <MotionWrapper delay={0.05} className="glass p-4 md:p-6 rounded-2xl">
+                            <div className="flex items-center gap-3 mb-4 md:mb-6">
+                                <div className="p-2 rounded-lg bg-amber-500/10 text-amber-500">
+                                    <Activity className="w-5 h-5" />
+                                </div>
+                                <h3 className="text-base md:text-lg font-bold text-stone-800">スコア推移</h3>
                             </div>
-                            <h3 className="text-lg font-bold text-stone-800">スコア推移</h3>
-                        </div>
-                        <div className="h-[300px]">
-                            <ScoreHistoryChart data={historyData} />
-                        </div>
-                    </MotionWrapper>
-
-                    <MotionWrapper delay={0.5} className="glass p-6 rounded-2xl">
-                        <div className="flex items-center gap-3 mb-6">
-                            <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500">
-                                <BarChart2 className="w-5 h-5" />
+                            <div className="h-[220px] md:h-[300px]">
+                                <ScoreHistoryChart data={historyData} />
                             </div>
-                            <h3 className="text-lg font-bold text-stone-800">分野別分析</h3>
-                        </div>
-                        <div className="h-[300px]">
-                            <CategoryRadarChart data={radarData} />
-                        </div>
-                    </MotionWrapper>
-                </div>
+                        </MotionWrapper>
 
-                <div className="mt-8">
+                        <MotionWrapper delay={0.1} className="glass p-4 md:p-6 rounded-2xl">
+                            <div className="flex items-center gap-3 mb-4 md:mb-6">
+                                <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500">
+                                    <BarChart2 className="w-5 h-5" />
+                                </div>
+                                <h3 className="text-base md:text-lg font-bold text-stone-800">分野別分析</h3>
+                            </div>
+                            <div className="h-[220px] md:h-[300px]">
+                                <CategoryRadarChart data={radarData} />
+                            </div>
+                        </MotionWrapper>
+                    </div>
+                </CollapsibleSection>
+
+                <div className="mt-6 md:mt-8">
                     <MotionWrapper delay={0.6}>
-                        <h2 className="text-xl font-bold text-stone-800 mb-4">学習を始める</h2>
+                        <h2 className="text-lg md:text-xl font-bold text-stone-800 mb-3 md:mb-4">学習を始める</h2>
                     </MotionWrapper>
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    <div className="grid gap-3 md:gap-4 md:grid-cols-2 lg:grid-cols-3">
                         <MotionWrapper delay={0.7}>
                             <div className="h-full">
                                 <RandomQuizButton />
@@ -317,14 +320,14 @@ export default async function DashboardPage() {
                         </MotionWrapper>
 
                         <MotionWrapper delay={0.8}>
-                            <Link href="/practice" className="glass glass-hover p-6 rounded-2xl group block h-full relative overflow-hidden">
+                            <Link href="/practice" className="glass glass-hover p-4 md:p-6 rounded-2xl group block h-full relative overflow-hidden">
                                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                                    <BookOpen className="w-24 h-24 text-primary" />
+                                    <BookOpen className="w-20 h-20 md:w-24 md:h-24 text-primary" />
                                 </div>
-                                <h3 className="text-lg font-bold text-stone-800 group-hover:text-primary transition-colors">
+                                <h3 className="text-base md:text-lg font-bold text-stone-800 group-hover:text-primary transition-colors">
                                     演習選択モード
                                 </h3>
-                                <p className="text-sm text-stone-500 mt-2 mb-4">
+                                <p className="text-xs md:text-sm text-stone-500 mt-1 md:mt-2 mb-3 md:mb-4">
                                     分野別に問題を解いて実力を伸ばす
                                 </p>
                                 <span className="text-xs font-bold text-primary flex items-center gap-1 group-hover:gap-2 transition-all">
@@ -334,14 +337,14 @@ export default async function DashboardPage() {
                         </MotionWrapper>
 
                         <MotionWrapper delay={0.9}>
-                            <Link href="/practice/review" className="glass glass-hover p-6 rounded-2xl group block h-full relative overflow-hidden">
+                            <Link href="/practice/review" className="glass glass-hover p-4 md:p-6 rounded-2xl group block h-full relative overflow-hidden">
                                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                                    <Bookmark className="w-24 h-24 text-yellow-500" />
+                                    <Bookmark className="w-20 h-20 md:w-24 md:h-24 text-yellow-500" />
                                 </div>
-                                <h3 className="text-lg font-bold text-stone-800 group-hover:text-yellow-400 transition-colors">
+                                <h3 className="text-base md:text-lg font-bold text-stone-800 group-hover:text-yellow-400 transition-colors">
                                     復習モード
                                 </h3>
-                                <p className="text-sm text-stone-500 mt-2 mb-4">
+                                <p className="text-xs md:text-sm text-stone-500 mt-1 md:mt-2 mb-3 md:mb-4">
                                     間違えた問題やブックマークを重点的に
                                 </p>
                                 <span className="text-xs font-bold text-yellow-500 flex items-center gap-1 group-hover:gap-2 transition-all">
@@ -353,8 +356,8 @@ export default async function DashboardPage() {
                     </div>
                 </div>
 
-                <MotionWrapper delay={0.9} className="mt-8">
-                    <h2 className="text-xl font-bold text-stone-800 mb-4">最近の学習履歴</h2>
+                <MotionWrapper delay={0.9} className="mt-6 md:mt-8">
+                    <h2 className="text-lg md:text-xl font-bold text-stone-800 mb-3 md:mb-4">最近の学習履歴</h2>
                     <GlassTable
                         data={attempts?.map(a => ({
                             id: a.id,

@@ -22,7 +22,7 @@ export function BottomNav() {
     if (pathname.startsWith("/admin")) return null;
 
     return (
-        <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white/90 backdrop-blur-md border-t border-stone-200 safe-area-inset-bottom">
+        <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white/90 backdrop-blur-md border-t border-stone-200 safe-area-inset-bottom fixed-layer">
             <div className="flex items-center justify-around h-16 px-2">
                 {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
                     const isActive = pathname === href || pathname.startsWith(href + "/");

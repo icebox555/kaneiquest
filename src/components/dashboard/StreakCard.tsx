@@ -14,22 +14,22 @@ export function StreakCard({ streak, totalCompleted }: Props) {
     const progress = prev === next ? 100 : Math.round(((streak - prev) / (next - prev)) * 100);
 
     return (
-        <div className="glass p-6 rounded-2xl space-y-4">
-            <div className="flex items-center gap-4">
-                <div className={`p-3 rounded-xl ${streak >= 3 ? "bg-orange-500/15 text-orange-500" : "bg-stone-100 text-stone-400"}`}>
-                    <Flame className={`w-6 h-6 ${streak >= 3 ? "fill-orange-500/30" : ""}`} />
+        <div className="glass p-4 md:p-6 rounded-2xl space-y-3 md:space-y-4">
+            <div className="flex items-center gap-3 md:gap-4">
+                <div className={`p-2.5 md:p-3 rounded-xl ${streak >= 3 ? "bg-orange-500/15 text-orange-500" : "bg-stone-100 text-stone-400"}`}>
+                    <Flame className={`w-5 h-5 md:w-6 md:h-6 ${streak >= 3 ? "fill-orange-500/30" : ""}`} />
                 </div>
                 <div>
-                    <h3 className="text-lg font-bold text-stone-800">連続学習</h3>
+                    <h3 className="text-base md:text-lg font-bold text-stone-800">連続学習</h3>
                     <p className="text-xs text-stone-400">累計 {totalCompleted} 日達成</p>
                 </div>
             </div>
 
             <div className="flex items-end gap-2">
-                <span className={`text-5xl font-extrabold ${streak >= 7 ? "text-orange-500" : "text-stone-700"}`}>
+                <span className={`text-4xl md:text-5xl font-extrabold ${streak >= 7 ? "text-orange-500" : "text-stone-700"}`}>
                     {streak}
                 </span>
-                <span className="text-stone-500 mb-2 text-lg">日連続</span>
+                <span className="text-stone-500 mb-1 md:mb-2 text-base md:text-lg">日連続</span>
             </div>
 
             <div className="space-y-1">
