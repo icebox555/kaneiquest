@@ -45,3 +45,6 @@ next-env.d.ts
 check_users_result.json
 docs/check_live_accounts/
 scripts/check_users.js
+
+# supabase CLI temp
+supabase/.temp/
