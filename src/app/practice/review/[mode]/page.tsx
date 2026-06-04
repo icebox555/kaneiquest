@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { QuizPlayer } from "@/components/quiz/QuizPlayer";
+import { dueWindow, SPACED_INTERVALS } from "@/lib/gamification/spaced-repetition";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
@@ -57,14 +58,11 @@ export default async function ReviewPlayerPage({ params }: PageProps) {
     } else if (mode === 'spaced') {
         // Spaced repetition: questions answered wrong 1, 3, or 7+ days ago
         const now = new Date();
-        const intervals = [1, 3, 7];
-        const windowHours = 20; // allow ±20h tolerance
 
         const questionIdSet = new Set<string>();
 
-        for (const days of intervals) {
-            const from = new Date(now.getTime() - (days + 1) * 24 * 60 * 60 * 1000);
-            const to = new Date(now.getTime() - (days - 1) * 24 * 60 * 60 * 1000 + windowHours * 60 * 60 * 1000);
+        for (const days of SPACED_INTERVALS) {
+            const { from, to } = dueWindow(now, days);
 
             const { data: spacedAttempts } = await supabase
                 .from("question_attempts")

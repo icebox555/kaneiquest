@@ -3,6 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import { PracticeEntryCard } from "@/components/practice/PracticeEntryCard";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { dueWindow, SPACED_INTERVALS } from "@/lib/gamification/spaced-repetition";
 
 export default async function ReviewHubPage() {
     const supabase = await createClient();
@@ -12,9 +13,8 @@ export default async function ReviewHubPage() {
     // Count spaced repetition questions due today
     const now = new Date();
     let spacedCount = 0;
-    for (const days of [1, 3, 7]) {
-        const from = new Date(now.getTime() - (days + 1) * 24 * 60 * 60 * 1000);
-        const to = new Date(now.getTime() - (days - 1) * 24 * 60 * 60 * 1000 + 20 * 60 * 60 * 1000);
+    for (const days of SPACED_INTERVALS) {
+        const { from, to } = dueWindow(now, days);
         const { count } = await supabase
             .from("question_attempts")
             .select("*", { count: "exact", head: true })
