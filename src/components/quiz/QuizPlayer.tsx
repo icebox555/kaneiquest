@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { ArrowRight, CheckCircle, XCircle, Zap, Home, X, LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { earnHeart } from "@/lib/actions/heart";
+import { applyXpGain, calcEarnedXp } from "@/lib/gamification/xp";
 import { BookmarkButton } from "./BookmarkButton";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -173,21 +174,12 @@ export function QuizPlayer({
 
             if (!profile) return;
 
-            let currentLevel = profile.level || 1;
-            let currentXp = profile.xp || 0;
-
-            const earnedXp = (finalScore * 10) + 20 + bonusXp;
-
-            let newXp = currentXp + earnedXp;
-            let newLevel = currentLevel;
-
-            let nextLevelXp = newLevel * 100;
-
-            while (newXp >= nextLevelXp) {
-                newXp -= nextLevelXp;
-                newLevel++;
-                nextLevelXp = newLevel * 100;
-            }
+            const earnedXp = calcEarnedXp(finalScore, bonusXp);
+            const { level: newLevel, xp: newXp } = applyXpGain(
+                profile.level,
+                profile.xp,
+                earnedXp,
+            );
 
             await supabase
                 .from("profiles")
@@ -285,7 +277,7 @@ export function QuizPlayer({
     if (quizCompleted) {
         const pct = Math.round((score / questions.length) * 100);
         const questBonus = mode === 'quest' ? 50 : 0;
-        const earnedXp = (score * 10) + 20 + questBonus;
+        const earnedXp = calcEarnedXp(score, questBonus);
         return (
             <div className="max-w-xl mx-auto py-12 px-4 text-center">
                 <motion.div
