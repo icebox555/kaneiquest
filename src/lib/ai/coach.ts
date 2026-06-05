@@ -84,16 +84,51 @@ export async function getWeaknessAnalysis(userId: string): Promise<CategoryWeakn
     return results.sort((a, b) => a.accuracy - b.accuracy);
 }
 
+// Starter quest categories for new users with no answer history.
+// Order matters: this is the order the categories are surfaced.
+const DEFAULT_QUEST_SLUGS = [
+    "basic-nutrition",        // 基礎栄養学
+    "structure-and-function", // 人体の構造と機能
+    "clinical-nutrition",     // 臨床栄養学
+] as const;
+
+// Human-readable labels for the starter quest, used by dashboard UI
+// when the user has no history yet.
+export const DEFAULT_QUEST_LABELS = ["基礎栄養学", "人体の構造と機能", "臨床栄養学"] as const;
+
 export async function generateDailyQuest(userId: string): Promise<DailyQuest | null> {
+    const supabase = await createClient();
     const weaknesses = await getWeaknessAnalysis(userId);
 
-    if (weaknesses.length === 0) return null;
+    let targetWeaknesses: CategoryWeakness[];
 
-    // Pick top 3 weakest categories
-    const targetWeaknesses = weaknesses.slice(0, 3);
+    if (weaknesses.length > 0) {
+        // Pick top 3 weakest categories
+        targetWeaknesses = weaknesses.slice(0, 3);
+    } else {
+        // New user with no history: fall back to a fixed starter set.
+        const { data: defaultCats } = await supabase
+            .from("categories")
+            .select("id, name, slug")
+            .in("slug", DEFAULT_QUEST_SLUGS as unknown as string[]);
+
+        if (!defaultCats || defaultCats.length === 0) return null;
+
+        // Preserve the order declared in DEFAULT_QUEST_SLUGS.
+        targetWeaknesses = DEFAULT_QUEST_SLUGS
+            .map(slug => defaultCats.find(c => c.slug === slug))
+            .filter((c): c is { id: string; name: string; slug: string } => Boolean(c))
+            .map(c => ({
+                categoryId: c.id,
+                categoryName: c.name,
+                accuracy: 0,
+                attemptCount: 0,
+            }));
+
+        if (targetWeaknesses.length === 0) return null;
+    }
+
     const targetCategoryIds = targetWeaknesses.map(w => w.categoryId);
-
-    const supabase = await createClient();
 
     // Fetch 10 questions from these categories
     // Ideally we want questions user got WRONG or hasn't answered.

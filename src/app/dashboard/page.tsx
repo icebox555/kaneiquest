@@ -13,7 +13,7 @@ import { DailyQuestCard } from "@/components/dashboard/DailyQuestCard";
 import { ExamCountdown } from "@/components/dashboard/ExamCountdown";
 import { StreakCard } from "@/components/dashboard/StreakCard";
 import { CollapsibleSection } from "@/components/dashboard/CollapsibleSection";
-import { getWeaknessAnalysis } from "@/lib/ai/coach";
+import { getWeaknessAnalysis, DEFAULT_QUEST_LABELS } from "@/lib/ai/coach";
 import { getSchedule } from "@/lib/actions/schedule";
 import { ShareButton } from "@/components/gamification/ShareButton";
 import { HeartActionClaimer } from "@/components/gamification/HeartActionClaimer";
@@ -204,7 +204,7 @@ export default async function DashboardPage() {
 
                 {/* AI Learning Coach */}
                 <MotionWrapper delay={0.15} className="mb-4 md:mb-6">
-                    <DailyQuestCard weaknessName={weaknessName} />
+                    <DailyQuestCard weaknessName={weaknessName} starterLabels={DEFAULT_QUEST_LABELS} />
                 </MotionWrapper>
 
                 <div className="grid gap-3 md:gap-6 grid-cols-2 lg:grid-cols-3">

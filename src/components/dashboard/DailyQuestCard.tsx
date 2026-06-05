@@ -6,37 +6,44 @@ import { MotionWrapper } from "@/components/ui/MotionWrapper";
 
 interface DailyQuestCardProps {
     weaknessName?: string;
+    /** Starter categories shown to brand-new users with no answer history. */
+    starterLabels?: readonly string[];
 }
 
-export function DailyQuestCard({ weaknessName }: DailyQuestCardProps) {
+export function DailyQuestCard({ weaknessName, starterLabels }: DailyQuestCardProps) {
     if (!weaknessName) {
-        // Fallback or "All Good" state
+        // New user with no history: surface the starter quest.
         return (
-            <MotionWrapper className="glass p-4 md:p-6 rounded-2xl relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+            <MotionWrapper className="glass p-4 md:p-6 rounded-2xl relative overflow-hidden group border-2 border-primary/10 hover:border-primary/30 transition-colors">
+                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                     <Sparkles className="w-28 h-28 md:w-32 md:h-32 text-yellow-500" />
                 </div>
 
                 <div className="relative z-10">
                     <div className="flex items-center gap-2 mb-3 md:mb-4">
-                        <div className="p-2 rounded-lg bg-yellow-500/10 text-yellow-600">
+                        <div className="p-2 rounded-lg bg-gradient-to-br from-primary to-orange-500 text-white shadow-lg shadow-orange-500/20">
                             <Sparkles className="w-5 h-5" />
                         </div>
-                        <h3 className="text-base md:text-lg font-bold text-stone-800">AI学習コーチ</h3>
+                        <div>
+                            <h3 className="text-base md:text-lg font-bold text-stone-800">デイリークエスト</h3>
+                            <p className="text-xs text-primary font-bold">はじめてのクエスト</p>
+                        </div>
                     </div>
 
                     <h4 className="text-lg md:text-xl font-bold text-stone-900 mb-2">
-                        素晴らしい！苦手分野が見つかりませんでした。
+                        まずはここから始めましょう！
                     </h4>
                     <p className="text-xs md:text-sm text-stone-500 mb-4 md:mb-6">
-                        この調子で頑張りましょう！ランダム演習でさらに実力を磨きましょう。
+                        {starterLabels && starterLabels.length > 0
+                            ? `${starterLabels.join("・")} の問題に挑戦。解くほどにAIが苦手分野を分析していきます。`
+                            : "クエストに挑戦すると、AIがあなたの苦手分野を分析していきます。"}
                     </p>
 
                     <Link
-                        href="/practice"
-                        className="inline-flex items-center justify-center w-full px-4 py-2.5 md:py-3 bg-stone-900 text-white font-bold rounded-xl hover:bg-stone-800 transition-colors"
+                        href="/practice/quest"
+                        className="inline-flex items-center justify-center w-full px-4 py-2.5 md:py-3 bg-gradient-to-r from-primary to-orange-500 text-white font-bold rounded-xl shadow-lg shadow-orange-500/20 hover:shadow-orange-500/40 transition-all"
                     >
-                        演習を始める
+                        クエストを始める
                         <ArrowRight className="w-4 h-4 ml-2" />
                     </Link>
                 </div>

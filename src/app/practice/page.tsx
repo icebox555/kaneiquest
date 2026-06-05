@@ -2,6 +2,9 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { PracticeEntryCard } from "@/components/practice/PracticeEntryCard";
 
+// Categories surfaced first in 分野別演習 (matches the starter quest order).
+const PRIORITY_SLUGS = ["basic-nutrition", "structure-and-function", "clinical-nutrition"];
+
 // Helper to get icon based on slug or name
 const getCategoryIconName = (slug: string) => {
     switch (slug) {
@@ -34,6 +37,16 @@ export default async function PracticePage() {
     ]);
 
     const examYears = [...new Set(examYearsData?.map(q => q.exam_year) ?? [])] as number[];
+
+    // Show the starter trio (基礎栄養・人体・臨床) first, then keep the existing `order`.
+    const sortedCategories = [...(categories ?? [])].sort((a, b) => {
+        const ai = PRIORITY_SLUGS.indexOf(a.slug ?? "");
+        const bi = PRIORITY_SLUGS.indexOf(b.slug ?? "");
+        const aPri = ai === -1 ? Number.MAX_SAFE_INTEGER : ai;
+        const bPri = bi === -1 ? Number.MAX_SAFE_INTEGER : bi;
+        if (aPri !== bPri) return aPri - bPri;
+        return (Number(a.order) || 0) - (Number(b.order) || 0);
+    });
 
     return (
         <div className="min-h-screen bg-transparent pt-20 pb-12">
@@ -74,7 +87,7 @@ export default async function PracticePage() {
                     分野別演習
                 </h2>
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    {categories?.map((category) => {
+                    {sortedCategories.map((category) => {
                         const iconName = getCategoryIconName(category.slug || '');
                         const questionCount = category.questions?.[0]?.count ?? 0;
                         const hasQuestions = questionCount > 0;
