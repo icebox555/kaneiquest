@@ -26,6 +26,7 @@ export default async function ProfilePage() {
         name: profile.name || "",
         email: profile.email,
         avatar_url: profile.avatar_url,
+        avatar_scale: profile.avatar_scale,
     };
 
     return (

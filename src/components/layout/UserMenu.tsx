@@ -14,11 +14,13 @@ import { User, LogOut, Settings, LayoutDashboard, CreditCard, Trophy } from "luc
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState } from "react";
+import { getDefaultAvatar, normalizeAvatarScale, DEFAULT_AVATAR_SCALE } from "@/lib/avatars";
 
 export function UserMenu() {
     const { user, logout } = useAuth();
     const [name, setName] = useState<string>("");
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+    const [avatarScale, setAvatarScale] = useState<number>(DEFAULT_AVATAR_SCALE);
     const supabase = createClient();
 
     useEffect(() => {
@@ -27,12 +29,13 @@ export function UserMenu() {
             const fetchProfile = async () => {
                 const { data } = await supabase
                     .from("profiles")
-                    .select("name, avatar_url")
+                    .select("*")
                     .eq("id", user.id)
                     .single();
                 if (data) {
                     if (data.name) setName(data.name);
                     if (data.avatar_url) setAvatarUrl(data.avatar_url);
+                    setAvatarScale(normalizeAvatarScale(data.avatar_scale));
                 }
             };
             fetchProfile();
@@ -50,8 +53,9 @@ export function UserMenu() {
             <DropdownMenuTrigger className="outline-none">
                 <Avatar className="h-9 w-9 border-2 border-rose-200 hover:border-rose-400 transition-colors cursor-pointer ring-offset-2 ring-offset-white focus:ring-2 focus:ring-rose-500">
                     <AvatarImage
-                        src={avatarUrl || "/default-avatar.png"}
-                        className={`object-cover ${!avatarUrl ? 'scale-[1.8]' : ''}`}
+                        src={avatarUrl || getDefaultAvatar(user.id)}
+                        className="object-cover"
+                        style={{ transform: `scale(${avatarScale})` }}
                     />
                     <AvatarFallback className="bg-rose-50 text-xs font-bold text-rose-600">
                         {initials}

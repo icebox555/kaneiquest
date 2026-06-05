@@ -13,6 +13,14 @@ import imageCompression from "browser-image-compression";
 import Cropper from "react-easy-crop";
 import getCroppedImg from "@/lib/utils/cropImage";
 import {
+    AVATAR_PRESETS,
+    DEFAULT_AVATAR_SCALE,
+    MIN_AVATAR_SCALE,
+    MAX_AVATAR_SCALE,
+    getDefaultAvatar,
+    normalizeAvatarScale,
+} from "@/lib/avatars";
+import {
     Dialog,
     DialogContent,
     DialogDescription,
@@ -27,6 +35,7 @@ interface ProfileFormProps {
         name: string;
         email: string;
         avatar_url?: string | null;
+        avatar_scale?: number | null;
     };
 }
 
@@ -35,6 +44,9 @@ export function ProfileForm({ initialProfile }: ProfileFormProps) {
     const [loading, setLoading] = useState(false);
     const [name, setName] = useState(initialProfile.name || "");
     const [avatarUrl, setAvatarUrl] = useState<string | null>(initialProfile.avatar_url || null);
+    const [avatarScale, setAvatarScale] = useState<number>(
+        normalizeAvatarScale(initialProfile.avatar_scale ?? DEFAULT_AVATAR_SCALE)
+    );
 
     // Cropper State
     const [crop, setCrop] = useState({ x: 0, y: 0 });
@@ -122,6 +134,12 @@ export function ProfileForm({ initialProfile }: ProfileFormProps) {
         }
     };
 
+    const handleSelectPreset = (preset: string) => {
+        setAvatarUrl(preset);
+        setAvatarFile(null); // アップロードファイルは破棄してプリセットを使う
+        setProfileMsg(null);
+    };
+
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -153,12 +171,13 @@ export function ProfileForm({ initialProfile }: ProfileFormProps) {
             // If user has existing avatar and just changed name, publicUrl is the remote URL.
             // If User selected new image, publicUrl is new remote URL.
 
-            const updates: any = { name };
-            if (avatarFile) {
-                updates.avatar_url = publicUrl;
-            } else if (avatarUrl === null) {
-                updates.avatar_url = null;
-            }
+            // publicUrl は初期値が avatarUrl（プリセットパス / 既存URL / null）で、
+            // 新規アップロード時のみ上書きされる。常に反映すれば全ケースをカバーできる。
+            const updates: any = {
+                name,
+                avatar_url: publicUrl,
+                avatar_scale: normalizeAvatarScale(avatarScale),
+            };
 
             const { error } = await supabase
                 .from("profiles")
@@ -224,8 +243,9 @@ export function ProfileForm({ initialProfile }: ProfileFormProps) {
                             <div className="relative group">
                                 <Avatar className="h-24 w-24 border-4 border-white shadow-lg cursor-pointer" onClick={() => fileInputRef.current?.click()}>
                                     <AvatarImage
-                                        src={avatarUrl || "/default-avatar.png"}
-                                        className={`object-cover ${!avatarUrl ? 'scale-[1.8]' : ''}`}
+                                        src={avatarUrl || getDefaultAvatar(initialProfile.id)}
+                                        className="object-cover"
+                                        style={{ transform: `scale(${avatarScale})` }}
                                     />
                                     <AvatarFallback className="text-2xl font-bold bg-stone-100 text-stone-400">
                                         {initials}
@@ -275,10 +295,78 @@ export function ProfileForm({ initialProfile }: ProfileFormProps) {
                                         }}
                                     >
                                         <X className="w-3 h-3" />
-                                        画像を削除してデフォルトに戻す
+                                        画像を削除して自動アイコンに戻す
                                     </Button>
                                 )}
                             </div>
+                        </div>
+
+                        {/* デフォルトアバターから選ぶ */}
+                        <div className="space-y-3">
+                            <Label className="text-stone-700">デフォルトアイコンから選ぶ</Label>
+                            <div className="flex flex-wrap gap-4">
+                                {AVATAR_PRESETS.map((preset) => {
+                                    const isSelected = avatarUrl === preset;
+                                    return (
+                                        <button
+                                            key={preset}
+                                            type="button"
+                                            onClick={() => handleSelectPreset(preset)}
+                                            aria-label="このアイコンを選択"
+                                            aria-pressed={isSelected}
+                                            className={`relative h-20 w-20 shrink-0 rounded-full overflow-hidden border-2 transition-all hover:scale-105 ${
+                                                isSelected
+                                                    ? "border-primary ring-2 ring-primary/40"
+                                                    : "border-stone-200 hover:border-stone-300"
+                                            }`}
+                                        >
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img src={preset} alt="" className="w-full h-full object-cover scale-150" />
+                                            {isSelected && (
+                                                <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                                                    <Check className="w-5 h-5 text-white drop-shadow" />
+                                                </div>
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            <p className="text-xs text-stone-400">
+                                好きなアイコンをタップして選択し、「変更を保存」を押してください。
+                            </p>
+                        </div>
+
+                        {/* アイコンの表示サイズ調整 */}
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                                <Label className="text-stone-700">アイコンの表示サイズ</Label>
+                                <span className="text-xs text-stone-400 tabular-nums">{avatarScale.toFixed(2)}x</span>
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <ZoomIn className="w-5 h-5 text-stone-400 shrink-0" />
+                                <input
+                                    type="range"
+                                    value={avatarScale}
+                                    min={MIN_AVATAR_SCALE}
+                                    max={MAX_AVATAR_SCALE}
+                                    step={0.05}
+                                    aria-label="アイコンの表示サイズ"
+                                    onChange={(e) => setAvatarScale(Number(e.target.value))}
+                                    className="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-primary"
+                                />
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-stone-500 hover:text-stone-700 h-auto p-0 text-xs shrink-0"
+                                    onClick={() => setAvatarScale(DEFAULT_AVATAR_SCALE)}
+                                >
+                                    リセット
+                                </Button>
+                            </div>
+                            <p className="text-xs text-stone-400">
+                                上のアイコンプレビューを見ながら、丸の中での画像の大きさを調整できます。
+                            </p>
                         </div>
 
                         {profileMsg && (

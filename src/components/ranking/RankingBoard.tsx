@@ -2,11 +2,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/Avatar";
 import { Crown, Heart } from "lucide-react";
 import { MotionWrapper } from "@/components/ui/MotionWrapper";
 import { HeartSender } from "./HeartSender";
+import { getDefaultAvatar, normalizeAvatarScale } from "@/lib/avatars";
 
 interface Ranker {
     user_id: string;
     name: string | null;
     avatar_url: string | null;
+    avatar_scale?: number | null;
     xp: number;
     level: number;
     plan?: string;
@@ -63,8 +65,9 @@ export function RankingBoard({ rankings, currentUserId, className }: RankingBoar
                                 <div className="relative">
                                     <Avatar className={`w-14 h-14 rounded-2xl border-4 shadow-sm ${isTop3 ? 'border-white ring-2 ring-offset-2 ring-' + (i === 0 ? 'yellow-400' : i === 1 ? 'stone-300' : 'orange-300') : 'border-white'}`}>
                                         <AvatarImage
-                                            src={ranker.avatar_url || "/default-avatar.png"}
-                                            className={`object-cover ${!ranker.avatar_url ? 'scale-[1.8]' : ''}`}
+                                            src={ranker.avatar_url || getDefaultAvatar(ranker.user_id)}
+                                            className="object-cover"
+                                            style={{ transform: `scale(${normalizeAvatarScale(ranker.avatar_scale)})` }}
                                         />
                                         <AvatarFallback className="rounded-2xl bg-stone-100 text-stone-500 font-bold">
                                             {ranker.name?.slice(0, 1).toUpperCase()}
